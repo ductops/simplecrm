@@ -1,6 +1,6 @@
 <img width="1103" height="541" alt="simplecrm" src="https://github.com/user-attachments/assets/653e4839-ec50-4492-8949-828991c7668c" />
 
-# 🛠️ VibeCRM - Super Super Simple CMS
+# 🛠️ SimpleCRM - Super Super Simple CRM
 
 > An open-source, lightweight Chrome Extension SimpleCRM & Light Billing Manager designed for lawn care professionals, pressure washing operators, contractors, and home service providers. Zero monthly subscriptions, zero server overhead, 100% privacy-focused. I like to build stuff and share  :)
 
