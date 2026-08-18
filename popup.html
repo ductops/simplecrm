@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Service Business Manager Pro v1.3.2</title>
+  <style>
+    :root[data-preset="lawn"] { --primary: #2e7d32; --primary-hover: #1b5e20; --accent: #e8f5e9; }
+    :root[data-preset="wash"] { --primary: #0277bd; --primary-hover: #01579b; --accent: #e1f5fe; }
+    :root[data-preset="trade"] { --primary: #d97706; --primary-hover: #b45309; --accent: #fef3c7; }
+
+    :root {
+      --bg: #f4f6f8; --card-bg: #ffffff; --text: #212529; --text-muted: #6c757d;
+      --border: #ced4da; --modal-overlay: rgba(0,0,0,0.5); --input-bg: #ffffff; --badge-bg: #e2e3e5;
+    }
+
+    [data-theme="dark"] {
+      --bg: #121212; --card-bg: #1e1e1e; --text: #e0e0e0; --text-muted: #a0a0a0;
+      --border: #333333; --modal-overlay: rgba(0,0,0,0.75); --input-bg: #2a2a2a; --badge-bg: #333333;
+    }
+
+    [data-theme="dark"][data-preset="lawn"] { --accent: #1b381e; }
+    [data-theme="dark"][data-preset="wash"] { --accent: #0d324d; }
+    [data-theme="dark"][data-preset="trade"] { --accent: #452403; }
+
+    html, body {
+      margin: 0; padding: 0; background-color: var(--bg); color: var(--text);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      width: 880px; max-height: 590px; overflow-x: hidden; box-sizing: border-box;
+    }
+
+    body { padding: 10px; }
+
+    body.full-page-mode { width: 100vw; max-height: 100vh; overflow-y: auto; padding: 20px; }
+
+    .header {
+      display: flex; justify-content: space-between; align-items: center;
+      background: var(--card-bg); padding: 10px 14px; border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 10px; flex-wrap: wrap; gap: 8px;
+    }
+
+    .header-branding { display: flex; align-items: center; gap: 10px; }
+    .company-logo { max-height: 36px; max-width: 100px; object-fit: contain; border-radius: 4px; }
+    .header h1 { margin: 0; font-size: 1.15rem; color: var(--primary); display: flex; align-items: center; gap: 6px; }
+
+    .version-tag {
+      background: var(--primary); color: white; font-size: 0.65rem; padding: 2px 6px; border-radius: 10px; font-weight: normal;
+    }
+
+    .btn {
+      background-color: var(--primary); color: white; border: none; padding: 6px 10px;
+      border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.8rem;
+      transition: background 0.2s; display: inline-flex; align-items: center; gap: 4px;
+    }
+
+    .btn:hover { background-color: var(--primary-hover); }
+    .btn-secondary { background-color: #6c757d; }
+    .btn-secondary:hover { background-color: #5a6268; }
+    .btn-danger { background-color: #d32f2f; }
+    .btn-danger:hover { background-color: #b71c1c; }
+    .btn-sm { padding: 3px 6px; font-size: 0.72rem; }
+
+    .container { display: grid; grid-template-columns: 260px 1fr; gap: 10px; transition: grid-template-columns 0.25s; }
+    .container.sidebar-collapsed { grid-template-columns: 38px 1fr; }
+
+    .sidebar {
+      background: var(--card-bg); padding: 10px; border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1); position: relative; overflow: hidden;
+    }
+
+    .container.sidebar-collapsed .sidebar { padding: 8px 4px; }
+    .container.sidebar-collapsed .sidebar-content { display: none; }
+
+    .sidebar-toggle-btn {
+      position: absolute; top: 8px; right: 8px; background: var(--accent);
+      color: var(--primary); border: 1px solid var(--primary); border-radius: 4px;
+      cursor: pointer; font-weight: bold; padding: 2px 5px; font-size: 0.75rem; z-index: 10;
+    }
+
+    .main-content { background: var(--card-bg); padding: 12px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .controls { margin-bottom: 8px; }
+
+    .search-bar, .form-control {
+      width: 100%; padding: 6px; box-sizing: border-box; margin-bottom: 6px;
+      border: 1px solid var(--border); border-radius: 4px; background-color: var(--input-bg);
+      color: var(--text); font-size: 0.82rem;
+    }
+
+    .customer-list { list-style: none; padding: 0; margin: 0; max-height: 380px; overflow-y: auto; }
+    .customer-item { padding: 6px 8px; border: 1px solid var(--border); border-radius: 4px; margin-bottom: 5px; cursor: pointer; }
+    .customer-item:hover, .customer-item.active { background-color: var(--accent); border-color: var(--primary); }
+    .customer-item h4 { margin: 0 0 2px 0; font-size: 0.85rem; }
+    .customer-item p { margin: 0; font-size: 0.75rem; color: var(--text-muted); }
+
+    .form-section { border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 8px; }
+    .form-section h3 { margin-top: 0; color: var(--primary); font-size: 0.95rem; margin-bottom: 6px; }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+
+    .form-group { margin-bottom: 6px; }
+    .form-group label { display: block; font-size: 0.78rem; font-weight: bold; margin-bottom: 2px; }
+
+    .editable-template-area {
+      background: var(--accent); border: 1px dashed var(--primary);
+      padding: 8px; border-radius: 4px; margin-bottom: 8px;
+    }
+
+    .modal {
+      display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: var(--modal-overlay); z-index: 1000; justify-content: center; align-items: center;
+    }
+
+    .modal-content {
+      background: var(--card-bg); padding: 16px; border-radius: 8px;
+      width: 90%; max-width: 780px; max-height: 85vh; overflow-y: auto;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+
+    .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 6px; margin-bottom: 10px; }
+    .close-btn { background: none; border: none; font-size: 1.2rem; color: var(--text); cursor: pointer; }
+
+    table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 0.8rem; }
+    th, td { padding: 6px; text-align: left; border-bottom: 1px solid var(--border); }
+    th { background: var(--accent); color: var(--primary); }
+
+    .badge { padding: 2px 5px; border-radius: 10px; font-size: 0.68rem; font-weight: bold; background: var(--badge-bg); }
+    .badge-paid { background: #d4edda; color: #155724; }
+    .badge-unpaid { background: #f8d7da; color: #721c24; }
+    .badge-overdue { background: #fff3cd; color: #856404; }
+
+    .reminder-banner {
+      background: #fff3cd; color: #856404; border: 1px solid #ffeba2;
+      padding: 5px 8px; border-radius: 4px; margin-bottom: 8px; font-size: 0.78rem; display: flex; align-items: center; justify-content: space-between;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="header-branding">
+      <img id="displayCompanyLogo" class="company-logo" style="display:none;" alt="Company Logo">
+      <div>
+        <h1 id="displayCompanyName">🌱 Business Manager <span class="version-tag">v1.3.2 Pro</span></h1>
+        <small id="displayCompanyDetails" style="color:var(--text-muted);"></small>
+      </div>
+    </div>
+    <div style="display:flex; gap:5px; flex-wrap:wrap; align-items:center;">
+      <button class="btn" id="btnExpandWindow" title="Open as full screen tab">🖥️ Full Screen</button>
+      <button class="btn" id="btnNewCustomer">+ New Customer</button>
+      <button class="btn" id="btnOpenInvoices">🧾 Invoices</button>
+      <button class="btn btn-secondary" id="btnToggleTheme">🌓 Theme</button>
+    </div>
+  </div>
+
+  <div class="container" id="mainContainer">
+    <div class="sidebar">
+      <button type="button" class="sidebar-toggle-btn" id="btnToggleSidebar" title="Toggle Sidebar">◀</button>
+      <div class="sidebar-content">
+        <h3 style="margin-top:0; font-size:0.95rem;">Customers</h3>
+        <div class="controls">
+          <input type="text" id="search" class="search-bar" placeholder="Search customer or site...">
+          <select id="statusFilter" class="search-bar">
+            <option value="ALL">All Statuses</option>
+            <option value="Active Contract">Active Contract</option>
+            <option value="One-Time Job">One-Time Job</option>
+            <option value="Lead/Quote">Lead/Quote</option>
+            <option value="Inactive">Inactive</option>
+          </select>
+        </div>
+        <ul id="customerList" class="customer-list"></ul>
+      </div>
+    </div>
+
+    <div class="main-content">
+      <!-- Outer Section 4 Wrap Fix prevents form submit glitches -->
+      <div>
+        <div class="editable-template-area">
+          <button type="button" class="btn btn-secondary btn-sm" id="btnToggleSettings">⚙️ Business Profile, Mailer & Payment Settings</button>
+          
+          <div id="settingsEditor" style="display:none; margin-top: 8px;">
+            <div class="grid-3">
+              <div class="form-group">
+                <label>Industry Theme Preset</label>
+                <select id="settingPresetTheme" class="form-control">
+                  <option value="lawn">🌱 Lawn Care & Landscaping</option>
+                  <option value="wash">💦 Pressure Washing & Exterior</option>
+                  <option value="trade">🔨 General Contracting & Trades</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Company Name</label>
+                <input type="text" id="settingCompName" class="form-control">
+              </div>
+              <div class="form-group">
+                <label>Company Contact Details</label>
+                <input type="text" id="settingCompDetails" class="form-control">
+              </div>
+            </div>
+
+            <div class="grid-3">
+              <div class="form-group">
+                <label>Default Tax Rate (%)</label>
+                <input type="number" step="0.01" id="settingDefaultTaxRate" class="form-control">
+              </div>
+              <div class="form-group">
+                <label>Tax ID / Reg #</label>
+                <input type="text" id="settingTaxId" class="form-control">
+              </div>
+              <div class="form-group">
+                <label>3rd-Party Payment URL (Stripe/PayPal/Venmo)</label>
+                <input type="text" id="settingPaymentUrl" class="form-control" placeholder="https://paypal.me/yourbusiness or Venmo @Handle">
+              </div>
+            </div>
+
+            <div class="grid-2">
+              <div class="form-group">
+                <label>Default Payment Terms / Disclaimer</label>
+                <input type="text" id="settingPaymentTerms" class="form-control" placeholder="Net 30. Payment due upon receipt.">
+              </div>
+              <div class="form-group">
+                <label>Upload Business Logo</label>
+                <input type="file" id="logoUpload" class="form-control" accept="image/*">
+              </div>
+            </div>
+
+            <!-- Mailer Static Text Customizer -->
+            <div style="background:var(--card-bg); padding:8px; border-radius:6px; border:1px solid var(--border); margin:8px 0;">
+              <h4 style="margin:0 0 6px 0; color:var(--primary); font-size:0.85rem;">📬 Mailer Marketing Templates</h4>
+              <div class="grid-2">
+                <div class="form-group">
+                  <label>Mailer Headline</label>
+                  <input type="text" id="settingMailerHeadline" class="form-control" placeholder="Ready for a Healthier, Greener Lawn?">
+                </div>
+                <div class="form-group">
+                  <label>Promo Callout Box Text</label>
+                  <input type="text" id="settingMailerCallout" class="form-control" placeholder="Contact Us for a Free Estimate Today!">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Services Offered List (Comma Separated)</label>
+                <input type="text" id="settingServices" class="form-control">
+              </div>
+            </div>
+
+            <!-- Workbook Data Library Controls -->
+            <div style="background:var(--card-bg); padding:8px; border-radius:6px; border:1px solid var(--border); margin:8px 0;">
+              <h4 style="margin:0 0 6px 0; color:var(--primary); font-size:0.85rem;">📚 Database Workbook Library</h4>
+              <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                <button type="button" class="btn btn-sm" id="btnSaveLibraryState">💾 Save Database State</button>
+                <button type="button" class="btn btn-sm btn-secondary" id="btnExportJSON">Export JSON</button>
+                <button type="button" class="btn btn-sm btn-secondary" id="btnExportCSV">Export CSV</button>
+                <input type="file" id="importFile" style="display:none">
+                <button type="button" class="btn btn-sm btn-secondary" id="btnImportJSON">Import JSON</button>
+              </div>
+            </div>
+
+            <button type="button" class="btn btn-sm" id="btnSaveSettings">Save Preferences & Configuration</button>
+          </div>
+        </div>
+
+        <div id="customerReminderBanner" class="reminder-banner" style="display:none;">
+          <span>🔔 <strong>Reminder:</strong> <span id="reminderText"></span></span>
+          <button type="button" class="btn btn-sm btn-secondary" id="btnClearReminderBtn">Clear Reminder</button>
+        </div>
+
+        <form id="customerForm" onsubmit="event.preventDefault();">
+          <!-- Section 1: Customer Information -->
+          <div class="form-section">
+            <h3>1. Customer Information</h3>
+            <div class="grid-3">
+              <div class="form-group">
+                <label>Full Name</label>
+                <input type="text" id="custName" class="form-control" required>
+              </div>
+              <div class="form-group">
+                <label>Owner / Resident Title (Optional)</label>
+                <input type="text" id="custOwnerTitle" class="form-control" placeholder="e.g. The Smith Family / John Smith">
+              </div>
+              <div class="form-group">
+                <label>Phone Number</label>
+                <input type="tel" id="custPhone" class="form-control">
+              </div>
+            </div>
+            <div class="grid-2">
+              <div class="form-group">
+                <label>Email Address</label>
+                <input type="email" id="custEmail" class="form-control">
+              </div>
+              <div class="form-group">
+                <label>Service Address</label>
+                <input type="text" id="custAddress" class="form-control" required>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 2: Property & Site Specs -->
+          <div class="form-section">
+            <h3>2. Site, Project & Cost Details</h3>
+            <div class="grid-3">
+              <div class="form-group">
+                <label id="labelScopeSize">Scope / Property Size</label>
+                <input type="text" id="propertySize" class="form-control">
+              </div>
+              <div class="form-group">
+                <label id="labelAccessCode">Gate / Entry Access</label>
+                <input type="text" id="gateCode" class="form-control">
+              </div>
+              <div class="form-group">
+                <label id="labelSiteTerrain">Site Type / Surface</label>
+                <input type="text" id="grassType" class="form-control">
+              </div>
+            </div>
+            <div class="grid-3">
+              <div class="form-group">
+                <label>Specialized Equipment Needs</label>
+                <input type="text" id="equipmentNeeds" class="form-control">
+              </div>
+              <div class="form-group">
+                <label>Internal Job Cost Estimate ($)</label>
+                <input type="number" step="0.01" id="internalCost" class="form-control" placeholder="0.00">
+              </div>
+              <div class="form-group">
+                <label>Follow-Up Reminder Date</label>
+                <input type="date" id="custReminderDate" class="form-control">
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Follow-Up Note / Alert Message</label>
+              <input type="text" id="custReminderNote" class="form-control" placeholder="e.g. Call for Fall Aeration quote">
+            </div>
+          </div>
+
+          <!-- Section 3: Service Contract -->
+          <div class="form-section">
+            <h3>3. Service & Maintenance Contract</h3>
+            <div class="grid-3">
+              <div class="form-group">
+                <label>Primary Service</label>
+                <select id="primaryService" class="form-control"></select>
+              </div>
+              <div class="form-group">
+                <label>Recurring Frequency</label>
+                <select id="serviceFrequency" class="form-control">
+                  <option value="Weekly">Weekly</option>
+                  <option value="Bi-Weekly">Bi-Weekly</option>
+                  <option value="Monthly">Monthly</option>
+                  <option value="One-Time Job">One-Time Job</option>
+                  <option value="As Needed">As Needed</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Customer Status</label>
+                <select id="customerStatus" class="form-control">
+                  <option value="Active Contract">Active Contract</option>
+                  <option value="One-Time Job">One-Time Job</option>
+                  <option value="Lead/Quote">Lead/Quote</option>
+                  <option value="Inactive">Inactive</option>
+                </select>
+              </div>
+            </div>
+            <div class="grid-2">
+              <div class="form-group">
+                <label>Rate Per Visit / Job ($)</label>
+                <input type="number" id="servicePrice" class="form-control" step="0.01" placeholder="0.00">
+              </div>
+              <div class="form-group">
+                <label>Preferred Payment Method</label>
+                <select id="paymentMethod" class="form-control">
+                  <option value="Credit Card">Credit Card</option>
+                  <option value="Check">Check</option>
+                  <option value="Cash">Cash</option>
+                  <option value="Bank Transfer (ACH)">Bank Transfer (ACH)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;">
+            <button type="button" class="btn" id="btnSaveCustomer">Save Record</button>
+            <button type="button" class="btn btn-danger" id="btnDeleteCustomer">Delete Record</button>
+            <button type="button" class="btn btn-secondary" id="btnPrintCard">📇 Customer Card</button>
+            <button type="button" class="btn btn-secondary" id="btnPrintMailer">📬 Postcard Mailer</button>
+          </div>
+        </form>
+
+        <!-- Section 4: Customer Invoices -->
+        <div class="form-section" style="margin-top:10px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <h3>4. Invoices & Billing History</h3>
+            <button type="button" class="btn btn-sm" id="btnCreateCustomerInvoice">+ Create Invoice</button>
+          </div>
+          <div style="overflow-x:auto;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Invoice #</th>
+                  <th>Date</th>
+                  <th>Description</th>
+                  <th>Total</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="customerInvoiceTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Global Invoice Manager Modal -->
+  <div id="invoiceModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>🧾 Invoice Manager</h2>
+        <button type="button" class="close-btn" id="btnCloseInvoiceModal">&times;</button>
+      </div>
+
+      <div class="controls grid-3">
+        <input type="text" id="invoiceSearch" class="form-control" placeholder="Search invoice # or name...">
+        <select id="invoiceStatusFilter" class="form-control">
+          <option value="ALL">All Statuses</option>
+          <option value="Paid">Paid</option>
+          <option value="Unpaid">Unpaid</option>
+          <option value="Overdue">Overdue</option>
+        </select>
+        <button type="button" class="btn" id="btnGlobalNewInvoice">+ Create New Invoice</button>
+      </div>
+
+      <div style="overflow-x:auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>Invoice #</th>
+              <th>Customer</th>
+              <th>Date</th>
+              <th>Service Details</th>
+              <th>Total</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="globalInvoiceTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create/Edit Invoice Modal with Primary Service Dropdown -->
+  <div id="createInvoiceModal" class="modal">
+    <div class="modal-content" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3 id="invoiceFormTitle">Create / Edit Invoice</h3>
+        <button type="button" class="close-btn" id="btnCloseCreateInvoiceModal">&times;</button>
+      </div>
+      <form id="invoiceForm" onsubmit="event.preventDefault();">
+        <input type="hidden" id="invId">
+        <div class="form-group">
+          <label>Select Customer</label>
+          <select id="invCustomerId" class="form-control" required></select>
+        </div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label>Invoice Number</label>
+            <input type="text" id="invNum" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label>Invoice Date</label>
+            <input type="date" id="invDate" class="form-control" required>
+          </div>
+        </div>
+
+        <!-- Primary Service Line Item Preset Dropdown -->
+        <div class="form-group">
+          <label>Primary Service Preset (Select to Auto-Fill)</label>
+          <select id="invServicePreset" class="form-control"></select>
+        </div>
+
+        <div class="form-group">
+          <label>Service Description</label>
+          <input type="text" id="invDescription" class="form-control" required>
+        </div>
+        
+        <div class="grid-2">
+          <div class="form-group">
+            <label>Subtotal Amount ($)</label>
+            <input type="number" step="0.01" id="invAmount" class="form-control" placeholder="0.00" required>
+          </div>
+          <div class="form-group">
+            <label>Payment Status</label>
+            <select id="invStatus" class="form-control">
+              <option value="Unpaid">Unpaid</option>
+              <option value="Paid">Paid</option>
+              <option value="Overdue">Overdue</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="background:var(--accent); padding:8px; border-radius:6px; margin-top:6px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <label style="font-weight:bold; font-size:0.8rem;">
+              <input type="checkbox" id="invApplyTax"> Apply Sales Tax
+            </label>
+            <div style="display:flex; align-items:center; gap:5px; width:130px;">
+              <label style="font-size:0.75rem; font-weight:bold;">Rate (%):</label>
+              <input type="number" step="0.01" id="invTaxRate" class="form-control" style="margin-bottom:0;" placeholder="0.00">
+            </div>
+          </div>
+
+          <div class="tax-summary-box" style="margin-top:6px;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:3px;">
+              <span>Subtotal:</span>
+              <strong id="calcSubtotal">$0.00</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:3px;">
+              <span>Sales Tax (<span id="calcTaxRateLabel">0</span>%):</span>
+              <strong id="calcTaxAmount">$0.00</strong>
+            </div>
+            <hr style="margin:4px 0; border:none; border-top:1px solid var(--primary);">
+            <div style="display:flex; justify-content:space-between; font-size:0.9rem; color:var(--primary);">
+              <span>Grand Total:</span>
+              <strong id="calcGrandTotal">$0.00</strong>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:6px; margin-top:10px;">
+          <button type="button" class="btn btn-secondary" id="btnCancelInvoiceForm">Cancel</button>
+          <button type="button" class="btn" id="btnSubmitInvoiceForm">Save Invoice</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <iframe id="printFrame" style="display:none; position:absolute; width:0; height:0; border:none;"></iframe>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "Multi-Trade SimpleCRM & Billing",
+  "short_name": "SimpleCRM",
+  "version": "1.3.2",
+  "description": "Simple and customizable customer record, project management, and invoicing manager with automated sales tax calculations.",
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "permissions": [
+    "storage"
+  ]
+}
