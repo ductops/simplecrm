@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "SimpleCRM & Billing",
+  "short_name": "SimpleCRM",
+  "version": "1.3.3",
+  "description": "Super simple and customizable customer record, project management, and invoicing manager with automated sales tax calculations.",
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "permissions": [
+    "storage"
+  ]
+}
