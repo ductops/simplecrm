@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Service Business Manager Pro v1.6.0</title>
+  <title>Service Business Manager Pro v1.7.0</title>
   <style>
-    :root[data-preset="lawn"] { --primary: #2e7d32; --primary-hover: #1b5e20; --accent: #e8f5e9; }
-    :root[data-preset="wash"] { --primary: #0277bd; --primary-hover: #01579b; --accent: #e1f5fe; }
-    :root[data-preset="trade"] { --primary: #d97706; --primary-hover: #b45309; --accent: #fef3c7; }
+    :root[data-preset="lawn"] { --primary: #2e7d32; --primary-hover: #1b5e20; --accent: #e8f5e9; --active-tab: #1b5e20; }
+    :root[data-preset="wash"] { --primary: #0277bd; --primary-hover: #01579b; --accent: #e1f5fe; --active-tab: #01579b; }
+    :root[data-preset="trade"] { --primary: #d97706; --primary-hover: #b45309; --accent: #fef3c7; --active-tab: #b45309; }
 
     :root {
       --bg: #f4f6f8; --card-bg: #ffffff; --text: #212529; --text-muted: #6c757d;
@@ -26,25 +26,34 @@
     html, body {
       margin: 0; padding: 0; background-color: var(--bg); color: var(--text);
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      width: 880px; max-height: 590px; overflow-x: hidden; box-sizing: border-box;
+      width: 100vw; min-height: 100vh; overflow-y: auto; box-sizing: border-box; padding: 18px;
     }
-
-    body { padding: 10px; }
-    body.full-page-mode { width: 100vw; max-height: 100vh; overflow-y: auto; padding: 20px; }
 
     .header {
       display: flex; justify-content: space-between; align-items: center;
-      background: var(--card-bg); padding: 10px 14px; border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 10px; flex-wrap: wrap; gap: 8px;
+      background: var(--card-bg); padding: 12px 18px; border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08); margin-bottom: 14px; flex-wrap: wrap; gap: 10px;
+      border-top: 4px solid var(--primary);
     }
 
-    .header-branding { display: flex; align-items: center; gap: 10px; }
-    .company-logo { max-height: 36px; max-width: 100px; object-fit: contain; border-radius: 4px; }
-    .header h1 { margin: 0; font-size: 1.15rem; color: var(--primary); display: flex; align-items: center; gap: 6px; }
+    .header-branding { display: flex; align-items: center; gap: 12px; }
+    .company-logo { max-height: 40px; max-width: 120px; object-fit: contain; border-radius: 4px; }
+    .header h1 { margin: 0; font-size: 1.25rem; color: var(--primary); display: flex; align-items: center; gap: 6px; }
 
     .version-tag {
       background: var(--primary); color: white; font-size: 0.65rem; padding: 2px 6px; border-radius: 10px; font-weight: normal;
     }
+
+    /* TOP NAV THEME ENGINE STYLES */
+    .top-nav-btn {
+      background-color: var(--primary); color: white; border: 1px solid var(--primary);
+      padding: 7px 14px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.85rem;
+      transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 5px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .top-nav-btn:hover { background-color: var(--primary-hover); border-color: var(--primary-hover); transform: translateY(-1px); }
+    .top-nav-btn.active-nav-tab { background-color: var(--active-tab); border-color: #000; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3); }
 
     .btn {
       background-color: var(--primary); color: white; border: none; padding: 6px 10px;
@@ -53,17 +62,15 @@
     }
 
     .btn:hover { background-color: var(--primary-hover); }
-    .btn-secondary { background-color: #6c757d; }
-    .btn-secondary:hover { background-color: #5a6268; }
-    .btn-danger { background-color: #d32f2f; }
-    .btn-danger:hover { background-color: #b71c1c; }
+    .btn-secondary { background-color: #6c757d; } .btn-secondary:hover { background-color: #5a6268; }
+    .btn-danger { background-color: #d32f2f; } .btn-danger:hover { background-color: #b71c1c; }
     .btn-sm { padding: 3px 6px; font-size: 0.72rem; }
 
-    .container { display: grid; grid-template-columns: 260px 1fr; gap: 10px; transition: grid-template-columns 0.25s; }
+    .container { display: grid; grid-template-columns: 280px 1fr; gap: 14px; transition: grid-template-columns 0.25s; }
     .container.sidebar-collapsed { grid-template-columns: 38px 1fr; }
 
     .sidebar {
-      background: var(--card-bg); padding: 10px; border-radius: 8px;
+      background: var(--card-bg); padding: 12px; border-radius: 8px;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1); position: relative; overflow: hidden;
     }
 
@@ -76,41 +83,52 @@
       cursor: pointer; font-weight: bold; padding: 2px 5px; font-size: 0.75rem; z-index: 10;
     }
 
-    .main-content { background: var(--card-bg); padding: 12px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .main-content { background: var(--card-bg); padding: 16px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
     .controls { margin-bottom: 8px; }
 
     .search-bar, .form-control {
-      width: 100%; padding: 6px; box-sizing: border-box; margin-bottom: 6px;
+      width: 100%; padding: 7px 9px; box-sizing: border-box; margin-bottom: 6px;
       border: 1px solid var(--border); border-radius: 4px; background-color: var(--input-bg);
       color: var(--text); font-size: 0.82rem;
     }
 
-    .customer-list { list-style: none; padding: 0; margin: 0; max-height: 380px; overflow-y: auto; }
-    .customer-item { padding: 6px 8px; border: 1px solid var(--border); border-radius: 4px; margin-bottom: 5px; cursor: pointer; }
+    .customer-list { list-style: none; padding: 0; margin: 0; max-height: 480px; overflow-y: auto; }
+    .customer-item { padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 6px; cursor: pointer; }
     .customer-item:hover, .customer-item.active { background-color: var(--accent); border-color: var(--primary); }
-    .customer-item h4 { margin: 0 0 2px 0; font-size: 0.85rem; }
+    .customer-item h4 { margin: 0 0 2px 0; font-size: 0.88rem; }
     .customer-item p { margin: 0; font-size: 0.75rem; color: var(--text-muted); }
 
-    .form-section { border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 8px; }
+    .form-section { border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 10px; }
     .form-section h3 { margin-top: 0; color: var(--primary); font-size: 0.95rem; margin-bottom: 6px; }
 
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
-    .grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 8px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    .grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; }
 
     .form-group { margin-bottom: 6px; }
     .form-group label { display: block; font-size: 0.78rem; font-weight: bold; margin-bottom: 2px; }
 
     .stat-card {
       background: var(--accent); border: 1px solid var(--primary);
-      padding: 8px 12px; border-radius: 6px; text-align: center;
+      padding: 10px 14px; border-radius: 6px; text-align: center;
     }
     .stat-card h4 { margin: 0; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; }
-    .stat-card div { font-size: 1.2rem; font-weight: bold; color: var(--primary); margin-top: 2px; }
+    .stat-card div { font-size: 1.3rem; font-weight: bold; color: var(--primary); margin-top: 2px; }
+
+    /* SCROLL & AUTO-HEIGHT CONTROL BOXES */
+    .widget-container-box {
+      max-height: 140px; overflow-y: auto; transition: max-height 0.25s ease;
+    }
+    .widget-container-box.auto-height-mode {
+      max-height: 600px !important;
+    }
+    .widget-container-box.collapsed-mode {
+      display: none !important;
+    }
 
     .rolodex-bar {
       background: var(--accent); border: 1px solid var(--primary);
-      padding: 8px; border-radius: 6px; margin-bottom: 10px;
+      padding: 10px; border-radius: 6px; margin-bottom: 12px;
     }
 
     .modal {
@@ -119,19 +137,19 @@
     }
 
     .modal-content {
-      background: var(--card-bg); padding: 16px; border-radius: 8px;
-      width: 90%; max-width: 780px; max-height: 85vh; overflow-y: auto;
+      background: var(--card-bg); padding: 20px; border-radius: 8px;
+      width: 90%; max-width: 800px; max-height: 85vh; overflow-y: auto;
       box-shadow: 0 4px 10px rgba(0,0,0,0.3);
     }
 
     .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 6px; margin-bottom: 10px; }
     .close-btn { background: none; border: none; font-size: 1.2rem; color: var(--text); cursor: pointer; }
 
-    table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 0.8rem; }
-    th, td { padding: 6px; text-align: left; border-bottom: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 0.82rem; }
+    th, td { padding: 8px; text-align: left; border-bottom: 1px solid var(--border); }
     th { background: var(--accent); color: var(--primary); }
 
-    .badge { padding: 2px 5px; border-radius: 10px; font-size: 0.68rem; font-weight: bold; background: var(--badge-bg); }
+    .badge { padding: 2px 6px; border-radius: 10px; font-size: 0.68rem; font-weight: bold; background: var(--badge-bg); }
     .badge-paid { background: #d4edda; color: #155724; }
     .badge-unpaid { background: #f8d7da; color: #721c24; }
     .badge-overdue { background: #fff3cd; color: #856404; }
@@ -143,16 +161,16 @@
     <div class="header-branding">
       <img id="displayCompanyLogo" class="company-logo" style="display:none;" alt="Company Logo">
       <div>
-        <h1 id="displayCompanyName">🌱 Business Manager <span class="version-tag">v1.6.0 Pro</span></h1>
+        <h1 id="displayCompanyName">🌱 Business Manager <span class="version-tag">v1.7.0 Pro</span></h1>
         <small id="displayCompanyDetails" style="color:var(--text-muted);"></small>
       </div>
     </div>
-    <div style="display:flex; gap:5px; flex-wrap:wrap; align-items:center;">
-      <button class="btn" id="btnOverviewTab" style="background:#6366f1;">📊 Overview</button>
-      <button class="btn" id="btnCustomerTab" style="background:#2e7d32;">👤 Customers</button>
-      <button class="btn" id="btnInvoicesTab" style="background:#d97706;">🧾 Invoices</button>
-      <button class="btn" id="btnSettingsTab" style="background:#475569;">⚙️ Settings</button>
-      <button class="btn" id="btnExpandWindow">🖥️ Full Screen</button>
+    <!-- DYNAMIC TOP NAV THEME BUTTONS -->
+    <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+      <button class="top-nav-btn active-nav-tab" id="btnOverviewTab">📊 Overview</button>
+      <button class="top-nav-btn" id="btnCustomerTab">👤 Customers</button>
+      <button class="top-nav-btn" id="btnInvoicesTab">🧾 Invoices</button>
+      <button class="top-nav-btn" id="btnSettingsTab">⚙️ Settings</button>
       <button class="btn btn-secondary" id="btnToggleTheme">🌓 Theme</button>
     </div>
   </div>
@@ -179,9 +197,9 @@
     <div class="main-content">
       
       <!-- LOCKED NORTH STAR COMMAND CENTER (ALWAYS PINNED ON TOP) -->
-      <div id="northStarCommandCenter" style="border-bottom: 2px solid var(--primary); padding-bottom: 10px; margin-bottom: 12px;">
+      <div id="northStarCommandCenter" style="border-bottom: 2px solid var(--primary); padding-bottom: 12px; margin-bottom: 14px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-          <h2 style="margin:0; color:var(--primary); font-size:1.1rem;">📊 Business Command Overview</h2>
+          <h2 style="margin:0; color:var(--primary); font-size:1.15rem;">📊 Business Command Overview</h2>
           <button type="button" class="btn btn-sm" id="btnNewCustomerFromDashboard">+ New Customer</button>
         </div>
 
@@ -205,13 +223,16 @@
           </div>
         </div>
 
-        <!-- Actionable Reminders Widget -->
-        <div class="form-section" style="background:var(--accent); border:1px solid var(--primary); border-radius:6px; padding:8px; margin-bottom:8px;">
-          <h3 style="margin-top:0; font-size:0.85rem; display:flex; justify-content:space-between; align-items:center;">
+        <!-- Actionable Reminders Widget with Height Toggles -->
+        <div class="form-section" style="background:var(--accent); border:1px solid var(--primary); border-radius:6px; padding:10px; margin-bottom:10px;">
+          <h3 style="margin-top:0; font-size:0.88rem; display:flex; justify-content:space-between; align-items:center;">
             <span>🔔 Actionable Reminders & Customer Alerts</span>
-            <small style="font-weight:normal; font-size:0.72rem;">Push back or mark complete</small>
+            <div style="display:flex; gap:4px;">
+              <button type="button" class="btn btn-sm btn-secondary" id="btnToggleRemindersHeight">↕ Auto-Height</button>
+              <button type="button" class="btn btn-sm btn-secondary" id="btnToggleRemindersCollapse">▼ Minimize</button>
+            </div>
           </h3>
-          <div style="max-height:120px; overflow-y:auto;">
+          <div id="remindersContainerBox" class="widget-container-box">
             <table>
               <thead>
                 <tr>
@@ -226,10 +247,16 @@
           </div>
         </div>
 
-        <!-- Unpaid Invoices & Balance Sheet -->
+        <!-- Unpaid Invoices & Balance Sheet Widget with Height Toggles -->
         <div class="form-section" style="margin-bottom:0; padding-bottom:0; border-bottom:none;">
-          <h3 style="margin-top:0; font-size:0.85rem;">🧾 Unpaid Invoices & Balance Sheet</h3>
-          <div style="max-height:120px; overflow-y:auto;">
+          <h3 style="margin-top:0; font-size:0.88rem; display:flex; justify-content:space-between; align-items:center;">
+            <span>🧾 Unpaid Invoices & Balance Sheet</span>
+            <div style="display:flex; gap:4px;">
+              <button type="button" class="btn btn-sm btn-secondary" id="btnToggleInvoicesHeight">↕ Auto-Height</button>
+              <button type="button" class="btn btn-sm btn-secondary" id="btnToggleInvoicesCollapse">▼ Minimize</button>
+            </div>
+          </h3>
+          <div id="invoicesContainerBox" class="widget-container-box">
             <table>
               <thead>
                 <tr>
@@ -247,13 +274,13 @@
         </div>
       </div>
 
-      <!-- DYNAMIC SECTION CONTENT SWITCHER BELOW THE NORTH STAR -->
+      <!-- DYNAMIC TAB SECTION SWITCHER -->
 
       <!-- TAB 1: CUSTOMER EDITOR AREA -->
       <div id="customerEditorSection" style="display:none;">
         <div class="rolodex-bar">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-            <label style="font-size:0.8rem; font-weight:bold; color:var(--primary);">📇 Customer Rolodex Quick-Picker</label>
+            <label style="font-size:0.82rem; font-weight:bold; color:var(--primary);">📇 Customer Rolodex Quick-Picker</label>
             <button type="button" class="btn btn-sm" id="btnNewCustomer">+ New Record</button>
           </div>
           <div class="grid-2">
@@ -379,7 +406,7 @@
           </div>
         </form>
 
-        <div class="form-section" style="margin-top:10px;">
+        <div class="form-section" style="margin-top:12px;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
             <h3>4. Invoices & Billing History</h3>
             <button type="button" class="btn btn-sm" id="btnCreateCustomerInvoice">+ Create Invoice</button>
@@ -437,10 +464,29 @@
         </div>
       </div>
 
-      <!-- TAB 3: DEDICATED SETTINGS & PROFILE SECTION -->
+      <!-- TAB 3: DEDICATED SETTINGS & SYNC ENGINE SECTION -->
       <div id="settingsSection" style="display:none;">
-        <h2 style="margin-top:0; color:var(--primary);">⚙️ Business Profile, Mailer & Application Settings</h2>
+        <h2 style="margin-top:0; color:var(--primary);">⚙️ Business Profile, Sync & Application Settings</h2>
         
+        <!-- REMOTE SERVER SYNC ENGINE -->
+        <div class="form-section" style="background:var(--accent); border:1px solid var(--primary); padding:10px; border-radius:6px;">
+          <h3>⚡ Remote Server Sync Engine</h3>
+          <div class="grid-2">
+            <div class="form-group">
+              <label>Database Storage Mode</label>
+              <select id="settingSyncMode" class="form-control">
+                <option value="local">🔒 Pure Offline (Local Storage)</option>
+                <option value="remote">🌐 Remote Server API Sync</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Server Endpoint URL</label>
+              <input type="text" id="settingSyncUrl" class="form-control" placeholder="https://my-server.com/api/crm-sync">
+            </div>
+          </div>
+          <button type="button" class="btn btn-sm btn-secondary" id="btnTestServerSync">⚡ Test Server Connection</button>
+        </div>
+
         <div class="form-section">
           <h3>Business Branding & Details</h3>
           <div class="grid-3">
@@ -515,13 +561,14 @@
         </div>
 
         <div class="form-section">
-          <h3>💾 Database & Backup Library</h3>
+          <h3>💾 Database Library & System Reset</h3>
           <div style="display:flex; gap:6px; flex-wrap:wrap;">
             <button type="button" class="btn btn-sm" id="btnSaveLibraryState">💾 Save Database State</button>
             <button type="button" class="btn btn-sm btn-secondary" id="btnExportJSON">Export JSON</button>
             <button type="button" class="btn btn-sm btn-secondary" id="btnExportCSV">Export CSV</button>
             <input type="file" id="importFile" style="display:none">
             <button type="button" class="btn btn-sm btn-secondary" id="btnImportJSON">Import JSON</button>
+            <button type="button" class="btn btn-sm btn-danger" id="btnResetFactoryDefault">💣 Reset to Factory Default</button>
           </div>
         </div>
 

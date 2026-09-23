@@ -23,6 +23,7 @@ let appState = {
   presetTheme: 'lawn', theme: 'light', sidebarCollapsed: false, autoloadDefault: true,
   defaultTaxRate: 7.00, taxId: "", paymentTerms: "Payment due upon receipt.", paymentUrl: "",
   invoiceFooterNote: "Thank you for your business!",
+  syncMode: 'local', syncUrl: '',
   mailerHeadline: presetThemes.lawn.headline, mailerCallout: presetThemes.lawn.callout,
   company: { name: presetThemes.lawn.name, details: "(555) 234-5678 | info@mybusiness.com", logo: "" },
   services: [...presetThemes.lawn.services],
@@ -42,8 +43,6 @@ function initApp() {
     loadSampleData(); saveState();
   }
 
-  if (window.innerWidth > 890) document.body.classList.add("full-page-mode");
-
   applyPresetTheme(appState.presetTheme || 'lawn');
   applyTheme(appState.theme || 'light');
   applySidebarState();
@@ -61,23 +60,29 @@ function initApp() {
 function loadSampleData() {
   appState.customers = [
     {
-      id: 101, name: "John Doe", ownerTitle: "The Doe Family", phone: "(555) 019-2831", email: "john@example.com", address: "742 Evergreen Terrace",
+      id: 101, name: "Armani Handbag", ownerTitle: "Retail Account", phone: "(555) 019-2831", email: "armani@example.com", address: "742 Evergreen Terrace",
       size: "5,500 sq ft", gate: "36-inch side gate", grass: "Fescue / Flat yard", equipment: "Walk Mower, Edger",
-      internalCost: "22.50", reminderDate: "2026-09-06", reminderNote: "Call for Fall Aeration quote",
+      internalCost: "22.50", reminderDate: "2026-09-22", reminderNote: "Call for Fall Aeration quote",
       service: appState.services[0] || "General Service", frequency: "Weekly", status: "Active Contract", price: "45.00", payment: "Credit Card"
     },
     {
-      id: 102, name: "Mike Tyson", ownerTitle: "Tyson Residence", phone: "(314) 555-1212", email: "mike@example.com", address: "123 Heavyweight Lane",
+      id: 102, name: "Mike Baun", ownerTitle: "Baun Residence", phone: "(314) 555-1212", email: "mike@example.com", address: "123 Heavyweight Lane",
       size: "12,000 sq ft", gate: "Double gate access", grass: "Bermuda", equipment: "Ride Mower",
       internalCost: "40.00", reminderDate: "2026-10-10", reminderNote: "Make sure they are good to go. Last month they had yard damage.",
       service: appState.services[1] || "Full Maintenance", frequency: "Bi-Weekly", status: "Active Contract", price: "85.00", payment: "Check"
     }
   ];
 
-  appState.invoices = [{
-    id: 1001, customerId: 101, number: "INV-1001", date: "2026-08-23", description: "Monthly Recurring Service Contract",
-    amount: "180.00", applyTax: true, taxRate: 7.00, status: "Unpaid"
-  }];
+  appState.invoices = [
+    {
+      id: 1001, customerId: 101, number: "INV-6382", date: "2026-09-22", description: "Monthly Recurring Service Contract",
+      amount: "200.00", applyTax: true, taxRate: 7.00, status: "Unpaid"
+    },
+    {
+      id: 1002, customerId: 102, number: "INV-2311", date: "2026-09-22", description: "Bi-Weekly Lawn Care & Cleanup",
+      amount: "85.00", applyTax: true, taxRate: 7.00, status: "Unpaid"
+    }
+  ];
 }
 
 function saveState() { localStorage.setItem('multiTradeCrmData', JSON.stringify(appState)); }
@@ -92,13 +97,17 @@ function attachEventListeners() {
   document.getElementById('btnNewCustomer').addEventListener('click', () => { showTab('customer'); createNewCustomer(); });
   document.getElementById('btnTabNewInvoice').addEventListener('click', () => openInvoiceCreateModal());
 
-  const expandBtn = document.getElementById('btnExpandWindow');
-  if (expandBtn) expandBtn.addEventListener('click', () => chrome.tabs.create({ url: chrome.runtime.getURL("popup.html") }));
-  
+  // Command Center Widget Height & Collapse Toggles
+  document.getElementById('btnToggleRemindersHeight').addEventListener('click', () => toggleWidgetHeight('remindersContainerBox', 'btnToggleRemindersHeight'));
+  document.getElementById('btnToggleRemindersCollapse').addEventListener('click', () => toggleWidgetCollapse('remindersContainerBox', 'btnToggleRemindersCollapse'));
+  document.getElementById('btnToggleInvoicesHeight').addEventListener('click', () => toggleWidgetHeight('invoicesContainerBox', 'btnToggleInvoicesHeight'));
+  document.getElementById('btnToggleInvoicesCollapse').addEventListener('click', () => toggleWidgetCollapse('invoicesContainerBox', 'btnToggleInvoicesCollapse'));
+
   document.getElementById('btnToggleSidebar').addEventListener('click', toggleSidebar);
   document.getElementById('btnToggleTheme').addEventListener('click', toggleTheme);
   
   document.getElementById('btnSaveSettings').addEventListener('click', saveSettings);
+  document.getElementById('btnTestServerSync').addEventListener('click', testServerSync);
   document.getElementById('settingPresetTheme').addEventListener('change', onPresetThemeChange);
   document.getElementById('logoUpload').addEventListener('change', handleLogoUpload);
 
@@ -107,6 +116,7 @@ function attachEventListeners() {
   document.getElementById('btnExportCSV').addEventListener('click', exportCSV);
   document.getElementById('btnImportJSON').addEventListener('click', () => document.getElementById('importFile').click());
   document.getElementById('importFile').addEventListener('change', importJSON);
+  document.getElementById('btnResetFactoryDefault').addEventListener('click', resetToFactoryDefault);
 
   document.getElementById('search').addEventListener('input', renderCustomerList);
   document.getElementById('statusFilter').addEventListener('change', renderCustomerList);
@@ -138,6 +148,14 @@ function attachEventListeners() {
 }
 
 function showTab(tabName) {
+  // Update Active Top Nav Tab Styles
+  document.querySelectorAll('.top-nav-btn').forEach(btn => btn.classList.remove('active-nav-tab'));
+  
+  if (tabName === 'overview') document.getElementById('btnOverviewTab').classList.add('active-nav-tab');
+  if (tabName === 'customer') document.getElementById('btnCustomerTab').classList.add('active-nav-tab');
+  if (tabName === 'invoices') document.getElementById('btnInvoicesTab').classList.add('active-nav-tab');
+  if (tabName === 'settings') document.getElementById('btnSettingsTab').classList.add('active-nav-tab');
+
   document.getElementById('customerEditorSection').style.display = tabName === 'customer' ? 'block' : 'none';
   document.getElementById('invoicesSection').style.display = tabName === 'invoices' ? 'block' : 'none';
   document.getElementById('settingsSection').style.display = tabName === 'settings' ? 'block' : 'none';
@@ -146,6 +164,20 @@ function showTab(tabName) {
   if (tabName === 'settings') loadSettingsForm();
 
   renderYouViewOverview();
+}
+
+function toggleWidgetHeight(boxId, btnId) {
+  const box = document.getElementById(boxId);
+  const btn = document.getElementById(btnId);
+  box.classList.toggle('auto-height-mode');
+  btn.textContent = box.classList.contains('auto-height-mode') ? '↕ Compact' : '↕ Auto-Height';
+}
+
+function toggleWidgetCollapse(boxId, btnId) {
+  const box = document.getElementById(boxId);
+  const btn = document.getElementById(btnId);
+  box.classList.toggle('collapsed-mode');
+  btn.textContent = box.classList.contains('collapsed-mode') ? '▲ Expand' : '▼ Minimize';
 }
 
 function populateRolodexDropdown() {
@@ -361,6 +393,8 @@ function toggleTheme() {
 function applyTheme(theme) { document.documentElement.setAttribute('data-theme', theme); }
 
 function loadSettingsForm() {
+  document.getElementById('settingSyncMode').value = appState.syncMode || 'local';
+  document.getElementById('settingSyncUrl').value = appState.syncUrl || '';
   document.getElementById('settingPresetTheme').value = appState.presetTheme || 'lawn';
   document.getElementById('settingCompName').value = appState.company.name || '';
   document.getElementById('settingCompDetails').value = appState.company.details || '';
@@ -385,6 +419,8 @@ function handleLogoUpload(e) {
 
 function saveSettings() {
   applyPresetTheme(document.getElementById('settingPresetTheme').value);
+  appState.syncMode = document.getElementById('settingSyncMode').value;
+  appState.syncUrl = document.getElementById('settingSyncUrl').value;
   appState.company.name = document.getElementById('settingCompName').value;
   appState.company.details = document.getElementById('settingCompDetails').value;
   appState.defaultTaxRate = parseFloat(document.getElementById('settingDefaultTaxRate').value) || 0;
@@ -398,6 +434,39 @@ function saveSettings() {
 
   saveState(); updateBrandingUI(); populateServicesDropdown();
   alert('All Settings Preferences Saved Successfully!');
+}
+
+async function testServerSync() {
+  const url = document.getElementById('settingSyncUrl').value;
+  if (!url) return alert("Please enter a Remote Server Endpoint URL first!");
+
+  try {
+    const res = await fetch(url, { method: 'GET' });
+    if (res.ok) {
+      alert(`⚡ Remote Server Sync Connected Successfully!\nServer Status: ${res.status}`);
+    } else {
+      alert(`⚠️ Server reached, but returned status code: ${res.status}`);
+    }
+  } catch (err) {
+    alert(`❌ Server Connection Failed:\n${err.message}`);
+  }
+}
+
+function resetToFactoryDefault() {
+  if (confirm("Are you sure you want to reset all CRM database records and settings to factory defaults?")) {
+    localStorage.removeItem('multiTradeCrmData');
+    appState = {
+      presetTheme: 'lawn', theme: 'light', sidebarCollapsed: false, autoloadDefault: true,
+      defaultTaxRate: 7.00, taxId: "", paymentTerms: "Payment due upon receipt.", paymentUrl: "",
+      invoiceFooterNote: "Thank you for your business!", syncMode: 'local', syncUrl: '',
+      mailerHeadline: presetThemes.lawn.headline, mailerCallout: presetThemes.lawn.callout,
+      company: { name: presetThemes.lawn.name, details: "(555) 234-5678 | info@mybusiness.com", logo: "" },
+      services: [...presetThemes.lawn.services],
+      customers: [], invoices: [], selectedCustomerId: null
+    };
+    loadSampleData(); saveState(); initApp();
+    alert("SimpleCRM has been completely reset to factory default!");
+  }
 }
 
 function updateBrandingUI() {
