@@ -36,4 +36,4 @@ We may update this policy if new features are added (for example, if an optional
 
 ## 6. Contact Information
 
-If you have any questions or concerns regarding this privacy policy, please contact the developer at: **[Insert Your Email or GitHub Issues Link Here]**
+If you have any questions or concerns regarding this privacy policy, please contact the developer at: **chuck-it@ductops.com**
