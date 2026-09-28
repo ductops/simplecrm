@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "SimpleCRM & Billing",
   "short_name": "SimpleCRM",
-  "version": "1.7.0",
+  "version": "1.7.1",
   "description": "Customizable customer record, project management, and invoicing manager with top-nav theme engine and server sync toggles.",
   "icons": {
     "16": "icons/icon16.png",
