@@ -60,27 +60,38 @@ function initApp() {
 function loadSampleData() {
   appState.customers = [
     {
-      id: 101, name: "Armani Handbag", ownerTitle: "Retail Account", phone: "(555) 019-2831", email: "armani@example.com", address: "742 Evergreen Terrace",
-      size: "5,500 sq ft", gate: "36-inch side gate", grass: "Fescue / Flat yard", equipment: "Walk Mower, Edger",
-      internalCost: "22.50", reminderDate: "2026-09-22", reminderNote: "Call for Fall Aeration quote",
-      service: appState.services[0] || "General Service", frequency: "Weekly", status: "Active Contract", price: "45.00", payment: "Credit Card"
-    },
-    {
-      id: 102, name: "Mike Baun", ownerTitle: "Baun Residence", phone: "(314) 555-1212", email: "mike@example.com", address: "123 Heavyweight Lane",
-      size: "12,000 sq ft", gate: "Double gate access", grass: "Bermuda", equipment: "Ride Mower",
-      internalCost: "40.00", reminderDate: "2026-10-10", reminderNote: "Make sure they are good to go. Last month they had yard damage.",
-      service: appState.services[1] || "Full Maintenance", frequency: "Bi-Weekly", status: "Active Contract", price: "85.00", payment: "Check"
+      id: 101, 
+      name: "John Doe", 
+      ownerTitle: "The Doe Family", 
+      phone: "(555) 019-2831", 
+      email: "john@example.com", 
+      address: "742 Evergreen Terrace",
+      size: "5,500 sq ft", 
+      gate: "36-inch side gate", 
+      grass: "Fescue / Flat yard", 
+      equipment: "Walk Mower, Edger",
+      internalCost: "22.50", 
+      reminderDate: new Date().toISOString().slice(0, 10), 
+      reminderNote: "Call for Fall Aeration quote",
+      service: appState.services[0] || "General Service", 
+      frequency: "Weekly", 
+      status: "Active Contract", 
+      price: "45.00", 
+      payment: "Credit Card"
     }
   ];
 
   appState.invoices = [
     {
-      id: 1001, customerId: 101, number: "INV-6382", date: "2026-09-22", description: "Monthly Recurring Service Contract",
-      amount: "200.00", applyTax: true, taxRate: 7.00, status: "Unpaid"
-    },
-    {
-      id: 1002, customerId: 102, number: "INV-2311", date: "2026-09-22", description: "Bi-Weekly Lawn Care & Cleanup",
-      amount: "85.00", applyTax: true, taxRate: 7.00, status: "Unpaid"
+      id: 1001, 
+      customerId: 101, 
+      number: "INV-1001", 
+      date: new Date().toISOString().slice(0, 10), 
+      description: "Monthly Recurring Service Contract",
+      amount: "180.00", 
+      applyTax: true, 
+      taxRate: 7.00, 
+      status: "Unpaid"
     }
   ];
 }
