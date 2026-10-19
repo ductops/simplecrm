@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Service Business Manager Pro v1.7.0</title>
+  <title>Service Business Manager Pro v1.8.0</title>
   <style>
     :root[data-preset="lawn"] { --primary: #2e7d32; --primary-hover: #1b5e20; --accent: #e8f5e9; --active-tab: #1b5e20; }
     :root[data-preset="wash"] { --primary: #0277bd; --primary-hover: #01579b; --accent: #e1f5fe; --active-tab: #01579b; }
@@ -44,7 +44,6 @@
       background: var(--primary); color: white; font-size: 0.65rem; padding: 2px 6px; border-radius: 10px; font-weight: normal;
     }
 
-    /* TOP NAV THEME ENGINE STYLES */
     .top-nav-btn {
       background-color: var(--primary); color: white; border: 1px solid var(--primary);
       padding: 7px 14px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.85rem;
@@ -93,9 +92,9 @@
     }
 
     .customer-list { list-style: none; padding: 0; margin: 0; max-height: 480px; overflow-y: auto; }
-    .customer-item { padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 6px; cursor: pointer; }
+    .customer-item { padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 6px; cursor: pointer; position: relative; }
     .customer-item:hover, .customer-item.active { background-color: var(--accent); border-color: var(--primary); }
-    .customer-item h4 { margin: 0 0 2px 0; font-size: 0.88rem; }
+    .customer-item h4 { margin: 0 0 2px 0; font-size: 0.88rem; display: flex; justify-content: space-between; align-items: center; }
     .customer-item p { margin: 0; font-size: 0.75rem; color: var(--text-muted); }
 
     .form-section { border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 10px; }
@@ -115,16 +114,9 @@
     .stat-card h4 { margin: 0; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; }
     .stat-card div { font-size: 1.3rem; font-weight: bold; color: var(--primary); margin-top: 2px; }
 
-    /* SCROLL & AUTO-HEIGHT CONTROL BOXES */
-    .widget-container-box {
-      max-height: 140px; overflow-y: auto; transition: max-height 0.25s ease;
-    }
-    .widget-container-box.auto-height-mode {
-      max-height: 600px !important;
-    }
-    .widget-container-box.collapsed-mode {
-      display: none !important;
-    }
+    .widget-container-box { max-height: 140px; overflow-y: auto; transition: max-height 0.25s ease; }
+    .widget-container-box.auto-height-mode { max-height: 600px !important; }
+    .widget-container-box.collapsed-mode { display: none !important; }
 
     .rolodex-bar {
       background: var(--accent); border: 1px solid var(--primary);
@@ -161,11 +153,10 @@
     <div class="header-branding">
       <img id="displayCompanyLogo" class="company-logo" style="display:none;" alt="Company Logo">
       <div>
-        <h1 id="displayCompanyName">🌱 Business Manager <span class="version-tag">v1.7.0 Pro</span></h1>
+        <h1 id="displayCompanyName">🌱 Business Manager <span class="version-tag">v1.8.0 Pro</span></h1>
         <small id="displayCompanyDetails" style="color:var(--text-muted);"></small>
       </div>
     </div>
-    <!-- DYNAMIC TOP NAV THEME BUTTONS -->
     <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
       <button class="top-nav-btn active-nav-tab" id="btnOverviewTab">📊 Overview</button>
       <button class="top-nav-btn" id="btnCustomerTab">👤 Customers</button>
@@ -189,6 +180,7 @@
             <option value="Lead/Quote">Lead/Quote</option>
             <option value="Inactive">Inactive</option>
           </select>
+          <button type="button" class="btn btn-sm btn-block" id="btnRouteSelectedSidebar" style="margin-top:4px;">🗺️ Route Selected Items</button>
         </div>
         <ul id="customerList" class="customer-list"></ul>
       </div>
@@ -196,7 +188,7 @@
 
     <div class="main-content">
       
-      <!-- LOCKED NORTH STAR COMMAND CENTER (ALWAYS PINNED ON TOP) -->
+      <!-- LOCKED NORTH STAR COMMAND CENTER -->
       <div id="northStarCommandCenter" style="border-bottom: 2px solid var(--primary); padding-bottom: 12px; margin-bottom: 14px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
           <h2 style="margin:0; color:var(--primary); font-size:1.15rem;">📊 Business Command Overview</h2>
@@ -223,7 +215,7 @@
           </div>
         </div>
 
-        <!-- Actionable Reminders Widget with Height Toggles -->
+        <!-- Actionable Reminders Widget -->
         <div class="form-section" style="background:var(--accent); border:1px solid var(--primary); border-radius:6px; padding:10px; margin-bottom:10px;">
           <h3 style="margin-top:0; font-size:0.88rem; display:flex; justify-content:space-between; align-items:center;">
             <span>🔔 Actionable Reminders & Customer Alerts</span>
@@ -247,7 +239,7 @@
           </div>
         </div>
 
-        <!-- Unpaid Invoices & Balance Sheet Widget with Height Toggles -->
+        <!-- Unpaid Invoices & Balance Sheet Widget -->
         <div class="form-section" style="margin-bottom:0; padding-bottom:0; border-bottom:none;">
           <h3 style="margin-top:0; font-size:0.88rem; display:flex; justify-content:space-between; align-items:center;">
             <span>🧾 Unpaid Invoices & Balance Sheet</span>
@@ -274,8 +266,6 @@
         </div>
       </div>
 
-      <!-- DYNAMIC TAB SECTION SWITCHER -->
-
       <!-- TAB 1: CUSTOMER EDITOR AREA -->
       <div id="customerEditorSection" style="display:none;">
         <div class="rolodex-bar">
@@ -291,8 +281,11 @@
 
         <form id="customerForm" onsubmit="event.preventDefault();">
           <div class="form-section">
-            <h3>1. Customer Information</h3>
-            <div class="grid-3">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <h3>1. Customer Information</h3>
+              <button type="button" class="btn btn-sm btn-secondary" id="btnOpenSingleMap">📍 Map Directions</button>
+            </div>
+            <div class="grid-3" style="margin-top:6px;">
               <div class="form-group">
                 <label>Full Name</label>
                 <input type="text" id="custName" class="form-control" required>
@@ -429,7 +422,7 @@
         </div>
       </div>
 
-      <!-- TAB 2: DEDICATED INVOICES TAB -->
+      <!-- TAB 2: INVOICES TAB -->
       <div id="invoicesSection" style="display:none;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
           <h2 style="margin:0; color:var(--primary);">🧾 Global Invoice Directory</h2>
@@ -464,12 +457,35 @@
         </div>
       </div>
 
-      <!-- TAB 3: DEDICATED SETTINGS & SYNC ENGINE SECTION -->
+      <!-- TAB 3: SETTINGS & MAP CONFIGURATION -->
       <div id="settingsSection" style="display:none;">
-        <h2 style="margin-top:0; color:var(--primary);">⚙️ Business Profile, Sync & Application Settings</h2>
+        <h2 style="margin-top:0; color:var(--primary);">⚙️ Business Profile, Sync & Mapping Preferences</h2>
+
+        <!-- MAPS & ROUTE SETTINGS -->
+        <div class="form-section" style="background:var(--accent); border:1px solid var(--primary); padding:10px; border-radius:6px;">
+          <h3>🗺️ Mapping & Route Preferences</h3>
+          <div class="grid-3">
+            <div class="form-group">
+              <label>HQ / Business Base Address</label>
+              <input type="text" id="settingHqAddress" class="form-control" placeholder="123 Main St, City, State Zip">
+            </div>
+            <div class="form-group">
+              <label>Preferred Map Provider</label>
+              <select id="settingMapProvider" class="form-control">
+                <option value="google">Google Maps</option>
+                <option value="apple">Apple Maps</option>
+                <option value="bing">Bing Maps</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Google Maps API Key (Optional)</label>
+              <input type="password" id="settingMapsApiKey" class="form-control" placeholder="AIzaSy...">
+            </div>
+          </div>
+        </div>
         
         <!-- REMOTE SERVER SYNC ENGINE -->
-        <div class="form-section" style="background:var(--accent); border:1px solid var(--primary); padding:10px; border-radius:6px;">
+        <div class="form-section">
           <h3>⚡ Remote Server Sync Engine</h3>
           <div class="grid-2">
             <div class="form-group">
@@ -543,28 +559,6 @@
         </div>
 
         <div class="form-section">
-  <h3>🗺️ Mapping & Route Preferences</h3>
-  <div class="grid-3">
-    <div class="form-group">
-      <label>HQ / Business Base Address</label>
-      <input type="text" id="settingHqAddress" class="form-control" placeholder="123 Main St, City, State Zip">
-    </div>
-    <div class="form-group">
-      <label>Preferred Map Provider</label>
-      <select id="settingMapProvider" class="form-control">
-        <option value="google">Google Maps</option>
-        <option value="apple">Apple Maps</option>
-        <option value="bing">Bing Maps</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <label>Google Maps API Key (Optional)</label>
-      <input type="password" id="settingMapsApiKey" class="form-control" placeholder="AIzaSy...">
-    </div>
-  </div>
-</div>
-
-        <div class="form-section">
           <h3>📬 Postcard Mailer Templates</h3>
           <div class="grid-2">
             <div class="form-group">
@@ -588,7 +582,7 @@
             <button type="button" class="btn btn-sm" id="btnSaveLibraryState">💾 Save Database State</button>
             <button type="button" class="btn btn-sm btn-secondary" id="btnExportJSON">Export JSON</button>
             <button type="button" class="btn btn-sm btn-secondary" id="btnExportCSV">Export CSV</button>
-            <input type="file" id="importFile" style="display:none" accept=".json,.enc,.vault">
+            <input type="file" id="importFile" style="display:none">
             <button type="button" class="btn btn-sm btn-secondary" id="btnImportJSON">Import JSON</button>
             <button type="button" class="btn btn-sm btn-danger" id="btnResetFactoryDefault">💣 Reset to Factory Default</button>
           </div>

@@ -23,11 +23,12 @@ let appState = {
   presetTheme: 'lawn', theme: 'light', sidebarCollapsed: false, autoloadDefault: true,
   defaultTaxRate: 7.00, taxId: "", paymentTerms: "Payment due upon receipt.", paymentUrl: "",
   invoiceFooterNote: "Thank you for your business!",
+  hqAddress: "", mapProvider: "google", mapsApiKey: "",
   syncMode: 'local', syncUrl: '',
   mailerHeadline: presetThemes.lawn.headline, mailerCallout: presetThemes.lawn.callout,
   company: { name: presetThemes.lawn.name, details: "(555) 234-5678 | info@mybusiness.com", logo: "" },
   services: [...presetThemes.lawn.services],
-  customers: [], invoices: [], selectedCustomerId: null
+  customers: [], invoices: [], selectedCustomerId: null, selectedRouteCustIds: []
 };
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -122,6 +123,12 @@ function attachEventListeners() {
   document.getElementById('settingPresetTheme').addEventListener('change', onPresetThemeChange);
   document.getElementById('logoUpload').addEventListener('change', handleLogoUpload);
 
+  document.getElementById('btnOpenSingleMap').addEventListener('click', () => {
+    const cust = appState.customers.find(c => c.id === appState.selectedCustomerId);
+    if (cust) openCustomerMap(cust.address);
+  });
+  document.getElementById('btnRouteSelectedSidebar').addEventListener('click', routeSelectedCustomers);
+
   document.getElementById('btnSaveLibraryState').addEventListener('click', () => { saveState(); alert('Workbook library saved!'); });
   document.getElementById('btnExportJSON').addEventListener('click', exportJSON);
   document.getElementById('btnExportCSV').addEventListener('click', exportCSV);
@@ -159,7 +166,6 @@ function attachEventListeners() {
 }
 
 function showTab(tabName) {
-  // Update Active Top Nav Tab Styles
   document.querySelectorAll('.top-nav-btn').forEach(btn => btn.classList.remove('active-nav-tab'));
   
   if (tabName === 'overview') document.getElementById('btnOverviewTab').classList.add('active-nav-tab');
@@ -404,6 +410,10 @@ function toggleTheme() {
 function applyTheme(theme) { document.documentElement.setAttribute('data-theme', theme); }
 
 function loadSettingsForm() {
+  document.getElementById('settingHqAddress').value = appState.hqAddress || '';
+  document.getElementById('settingMapProvider').value = appState.mapProvider || 'google';
+  document.getElementById('settingMapsApiKey').value = appState.mapsApiKey || '';
+  
   document.getElementById('settingSyncMode').value = appState.syncMode || 'local';
   document.getElementById('settingSyncUrl').value = appState.syncUrl || '';
   document.getElementById('settingPresetTheme').value = appState.presetTheme || 'lawn';
@@ -430,6 +440,11 @@ function handleLogoUpload(e) {
 
 function saveSettings() {
   applyPresetTheme(document.getElementById('settingPresetTheme').value);
+  
+  appState.hqAddress = document.getElementById('settingHqAddress').value;
+  appState.mapProvider = document.getElementById('settingMapProvider').value;
+  appState.mapsApiKey = document.getElementById('settingMapsApiKey').value;
+
   appState.syncMode = document.getElementById('settingSyncMode').value;
   appState.syncUrl = document.getElementById('settingSyncUrl').value;
   appState.company.name = document.getElementById('settingCompName').value;
@@ -444,7 +459,43 @@ function saveSettings() {
   appState.services = document.getElementById('settingServices').value.split(',').map(s => s.trim()).filter(s => s.length > 0);
 
   saveState(); updateBrandingUI(); populateServicesDropdown();
-  alert('All Settings Preferences Saved Successfully!');
+  alert('All Settings & Mapping Preferences Saved Successfully!');
+}
+
+function openCustomerMap(address) {
+  const hq = appState.hqAddress || '';
+  const provider = appState.mapProvider || 'google';
+  
+  if (!address) return alert("Customer address is missing.");
+
+  let mapUrl = '';
+  if (provider === 'apple') {
+    mapUrl = `https://maps.apple.com/?saddr=${encodeURIComponent(hq)}&daddr=${encodeURIComponent(address)}`;
+  } else if (provider === 'bing') {
+    mapUrl = `https://www.bing.com/maps?rtp=adr.${encodeURIComponent(hq)}~adr.${encodeURIComponent(address)}`;
+  } else {
+    mapUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(hq)}&destination=${encodeURIComponent(address)}`;
+  }
+
+  window.open(mapUrl, '_blank');
+}
+
+function routeSelectedCustomers() {
+  const hq = appState.hqAddress || '';
+  const checkboxes = document.querySelectorAll('.cust-route-checkbox:checked');
+  const selectedIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+
+  if (selectedIds.length === 0) return alert("Check at least one customer box in the directory to build a route.");
+
+  const addresses = selectedIds
+    .map(id => appState.customers.find(c => c.id === id))
+    .filter(c => c && c.address)
+    .map(c => encodeURIComponent(c.address));
+
+  if (addresses.length === 0) return alert("No valid customer addresses found for selected items.");
+
+  let multiRouteUrl = `https://www.google.com/maps/dir/${encodeURIComponent(hq)}/` + addresses.join('/');
+  window.open(multiRouteUrl, '_blank');
 }
 
 async function testServerSync() {
@@ -469,8 +520,8 @@ function resetToFactoryDefault() {
     appState = {
       presetTheme: 'lawn', theme: 'light', sidebarCollapsed: false, autoloadDefault: true,
       defaultTaxRate: 7.00, taxId: "", paymentTerms: "Payment due upon receipt.", paymentUrl: "",
-      invoiceFooterNote: "Thank you for your business!", syncMode: 'local', syncUrl: '',
-      mailerHeadline: presetThemes.lawn.headline, mailerCallout: presetThemes.lawn.callout,
+      invoiceFooterNote: "Thank you for your business!", hqAddress: "", mapProvider: "google", mapsApiKey: "",
+      syncMode: 'local', syncUrl: '', mailerHeadline: presetThemes.lawn.headline, mailerCallout: presetThemes.lawn.callout,
       company: { name: presetThemes.lawn.name, details: "(555) 234-5678 | info@mybusiness.com", logo: "" },
       services: [...presetThemes.lawn.services],
       customers: [], invoices: [], selectedCustomerId: null
@@ -532,8 +583,26 @@ function renderCustomerList() {
   filtered.forEach(c => {
     const li = document.createElement('li');
     li.className = `customer-item ${c.id === appState.selectedCustomerId ? 'active' : ''}`;
-    li.onclick = () => { showTab('customer'); loadCustomerIntoForm(c.id); };
-    li.innerHTML = `<h4>${c.name || 'Unnamed Record'}</h4><p>${c.address || 'No Address'}</p><p><strong>${c.service}</strong> - $${c.price || '0.00'}</p>`;
+    li.onclick = (e) => { 
+      if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'BUTTON') {
+        showTab('customer'); loadCustomerIntoForm(c.id); 
+      }
+    };
+    
+    li.innerHTML = `
+      <h4>
+        <span><input type="checkbox" class="cust-route-checkbox" value="${c.id}" onclick="event.stopPropagation();"> ${c.name || 'Unnamed Record'}</span>
+        <button type="button" class="btn btn-sm btn-secondary btn-quick-map" title="Map Single Stop">📍 Map</button>
+      </h4>
+      <p>${c.address || 'No Address'}</p>
+      <p><strong>${c.service}</strong> - $${c.price || '0.00'}</p>
+    `;
+
+    li.querySelector('.btn-quick-map').addEventListener('click', (evt) => {
+      evt.stopPropagation();
+      openCustomerMap(c.address);
+    });
+
     list.appendChild(li);
   });
 }
@@ -1183,57 +1252,3 @@ function exportCSV() {
   document.body.appendChild(anchor); anchor.click(); anchor.remove();
 }
 
-// Map Route Engine
-function openCustomerMap(address) {
-  const hq = appState.hqAddress || '';
-  const provider = appState.mapProvider || 'google';
-  
-  if (!address) return alert("Customer address is missing.");
-
-  let mapUrl = '';
-  if (provider === 'apple') {
-    mapUrl = `https://maps.apple.com/?saddr=${encodeURIComponent(hq)}&daddr=${encodeURIComponent(address)}`;
-  } else if (provider === 'bing') {
-    mapUrl = `https://www.bing.com/maps?rtp=adr.${encodeURIComponent(hq)}~adr.${encodeURIComponent(address)}`;
-  } else {
-    // Default Google Maps
-    mapUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(hq)}&destination=${encodeURIComponent(address)}`;
-  }
-
-  window.open(mapUrl, '_blank');
-}
-
-function routeSelectedCustomers(selectedCustIds) {
-  const hq = appState.hqAddress || '';
-  if (!selectedCustIds || selectedCustIds.length === 0) return alert("Select at least one customer to build a route.");
-
-  const addresses = selectedCustIds
-    .map(id => appState.customers.find(c => c.id === id))
-    .filter(c => c && c.address)
-    .map(c => encodeURIComponent(c.address));
-
-  if (addresses.length === 0) return alert("No valid customer addresses found for selected items.");
-
-  let multiRouteUrl = `https://www.google.com/maps/dir/${encodeURIComponent(hq)}/` + addresses.join('/');
-  window.open(multiRouteUrl, '_blank');
-}
-
-// Optional Live Distance Matrix API Call (When Key Exists)
-async function fetchLiveDriveDistance(customerAddress) {
-  if (!appState.mapsApiKey || !appState.hqAddress || !customerAddress) return null;
-
-  try {
-    const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${encodeURIComponent(appState.hqAddress)}&destinations=${encodeURIComponent(customerAddress)}&key=${appState.mapsApiKey}`;
-    const res = await fetch(url);
-    const data = await res.json();
-
-    if (data.status === 'OK' && data.rows[0].elements[0].status === 'OK') {
-      const distance = data.rows[0].elements[0].distance.text;
-      const duration = data.rows[0].elements[0].duration.text;
-      return { distance, duration };
-    }
-  } catch (err) {
-    console.warn("Distance Matrix API call failed, falling back to basic link:", err);
-  }
-  return null;
-}
