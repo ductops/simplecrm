@@ -969,26 +969,205 @@ function executeIframePrint(htmlContent) {
   setTimeout(() => { frame.contentWindow.focus(); frame.contentWindow.print(); }, 300);
 }
 
-function exportJSON() {
-  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appState, null, 2));
-  const anchor = document.createElement('a');
-  anchor.setAttribute("href", dataStr);
-  anchor.setAttribute("download", `crm_database_${new Date().toISOString().slice(0,10)}.json`);
-  document.body.appendChild(anchor); anchor.click(); anchor.remove();
+/**
+ * Web Crypto API Utility (AES-256-GCM + PBKDF2)
+ * High-security client-side encryption for JSON exports/imports
+ */
+
+const CryptoEngine = {
+  // Convert ArrayBuffer to Hex String
+  bufToHex(buffer) {
+    return Array.from(new Uint8Array(buffer))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+  },
+
+  // Convert Hex String to Uint8Array
+  hexToBuf(hexString) {
+    const bytes = new Uint8Array(Math.ceil(hexString.length / 2));
+    for (let i = 0; i < bytes.length; i++) {
+      bytes[i] = parseInt(hexString.substr(i * 2, 2), 16);
+    }
+    return bytes;
+  },
+
+  // Derive AES-256-GCM Key using PBKDF2 (100,000 iterations, SHA-256)
+  async deriveKey(password, salt) {
+    const enc = new TextEncoder();
+    const keyMaterial = await window.crypto.subtle.importKey(
+      "raw",
+      enc.encode(password),
+      { name: "PBKDF2" },
+      false,
+      ["deriveKey"]
+    );
+
+    return window.crypto.subtle.deriveKey(
+      {
+        name: "PBKDF2",
+        salt: salt,
+        iterations: 100000,
+        hash: "SHA-256"
+      },
+      keyMaterial,
+      { name: "AES-GCM", length: 256 },
+      false,
+      ["encrypt", "decrypt"]
+    );
+  },
+
+  // Encrypt Plaintext Data String with Password
+  async encryptData(dataString, password) {
+    const enc = new TextEncoder();
+    const salt = window.crypto.getRandomValues(new Uint8Array(16)); // 16-byte random salt
+    const iv = window.crypto.getRandomValues(new Uint8Array(12));   // 12-byte GCM IV
+
+    const key = await this.deriveKey(password, salt);
+
+    const ciphertextBuffer = await window.crypto.subtle.encrypt(
+      { name: "AES-GCM", iv: iv },
+      key,
+      enc.encode(dataString)
+    );
+
+    return JSON.stringify({
+      version: "AES-256-GCM-PBKDF2",
+      salt: this.bufToHex(salt),
+      iv: this.bufToHex(iv),
+      ciphertext: this.bufToHex(ciphertextBuffer)
+    }, null, 2);
+  },
+
+  // Decrypt Encrypted Payload Object with Password
+  async decryptData(encryptedPayload, password) {
+    const dec = new TextDecoder();
+    
+    // Parse payload if passed as string
+    const payload = typeof encryptedPayload === 'string' ? JSON.parse(encryptedPayload) : encryptedPayload;
+    
+    if (!payload.salt || !payload.iv || !payload.ciphertext) {
+      throw new Error("Invalid encrypted file payload format.");
+    }
+
+    const salt = this.hexToBuf(payload.salt);
+    const iv = this.hexToBuf(payload.iv);
+    const ciphertext = this.hexToBuf(payload.ciphertext);
+
+    const key = await this.deriveKey(password, salt);
+
+    const decryptedBuffer = await window.crypto.subtle.decrypt(
+      { name: "AES-GCM", iv: iv },
+      key,
+      ciphertext
+    );
+
+    return dec.decode(decryptedBuffer);
+  }
+};
+
+// 🔐 AES-256 Password-Protected Export Handler
+async function exportJSON() {
+  const password = prompt("🔐 Enter a master passphrase to encrypt your CRM database backup (or leave blank for unencrypted JSON):");
+  
+  // User pressed Cancel on prompt
+  if (password === null) return;
+
+  const dataString = JSON.stringify(appState, null, 2);
+  const dateStr = new Date().toISOString().slice(0,10);
+
+  if (password.trim().length > 0) {
+    try {
+      // Perform AES-256-GCM Encryption
+      const encryptedPayload = await CryptoEngine.encryptData(dataString, password.trim());
+      
+      const blob = new Blob([encryptedPayload], { type: "application/json" });
+      const anchor = document.createElement("a");
+      anchor.href = URL.createObjectURL(blob);
+      anchor.download = `crm_encrypted_backup_${dateStr}.enc`;
+      document.body.appendChild(anchor); 
+      anchor.click(); 
+      anchor.remove();
+
+      alert("🔒 Encrypted backup successfully created (.enc extension)!");
+    } catch (err) {
+      alert("❌ Encryption Failed: " + err.message);
+    }
+  } else {
+    // Unencrypted standard export fallback
+    const blob = new Blob([dataString], { type: "application/json" });
+    const anchor = document.createElement("a");
+    anchor.href = URL.createObjectURL(blob);
+    anchor.download = `crm_database_${dateStr}.json`;
+    document.body.appendChild(anchor); 
+    anchor.click(); 
+      anchor.remove();
+
+    alert("📄 Standard unencrypted JSON backup created.");
+  }
 }
 
+// 🔓 Smart Import Handler (.json, .enc, .vault)
 function importJSON(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
   const reader = new FileReader();
-  reader.onload = function(evt) {
+  reader.onload = async function(evt) {
+    const rawContent = evt.target.result;
+
     try {
-      const imported = JSON.parse(evt.target.result);
-      if (imported.customers) {
-        appState = imported; saveState(); initApp();
-        alert('Database successfully imported!');
+      let parsedData = null;
+
+      // Try reading content as JSON first
+      let testJson = null;
+      try {
+        testJson = JSON.parse(rawContent);
+      } catch (err) {
+        // Not valid JSON format
       }
-    } catch (err) { alert('Invalid JSON file format.'); }
+
+      // Check if file is an encrypted payload (has salt, iv, and ciphertext)
+      if (testJson && testJson.ciphertext && testJson.salt && testJson.iv) {
+        const password = prompt("🔑 This file is password-protected. Enter master passphrase to decrypt:");
+        if (!password) {
+          alert("Import cancelled: Passphrase is required.");
+          e.target.value = ''; // Reset file input
+          return;
+        }
+
+        try {
+          const decryptedText = await CryptoEngine.decryptData(testJson, password.trim());
+          parsedData = JSON.parse(decryptedText);
+        } catch (decryptErr) {
+          alert("❌ Decryption Failed: Invalid passphrase or corrupted backup file.");
+          e.target.value = '';
+          return;
+        }
+      } else if (testJson && testJson.customers) {
+        // Standard unencrypted JSON format
+        parsedData = testJson;
+      } else {
+        throw new Error("Unrecognized CRM database file format.");
+      }
+
+      // Validate & Load Decrypted State
+      if (parsedData && Array.isArray(parsedData.customers)) {
+        appState = parsedData;
+        saveState();
+        initApp();
+        alert("🎉 Database backup successfully decrypted and loaded!");
+      } else {
+        alert("⚠️ Import Error: Backup file is missing required customer database records.");
+      }
+
+    } catch (err) {
+      alert("❌ Import Failed: " + err.message);
+    }
+
+    e.target.value = ''; // Reset file input selector
   };
-  reader.readAsText(e.target.files[0]);
+
+  reader.readAsText(file);
 }
 
 function exportCSV() {
@@ -1002,4 +1181,59 @@ function exportCSV() {
   anchor.setAttribute("href", encodeURI(csvContent));
   anchor.setAttribute("download", `customer_export_${new Date().toISOString().slice(0,10)}.csv`);
   document.body.appendChild(anchor); anchor.click(); anchor.remove();
+}
+
+// Map Route Engine
+function openCustomerMap(address) {
+  const hq = appState.hqAddress || '';
+  const provider = appState.mapProvider || 'google';
+  
+  if (!address) return alert("Customer address is missing.");
+
+  let mapUrl = '';
+  if (provider === 'apple') {
+    mapUrl = `https://maps.apple.com/?saddr=${encodeURIComponent(hq)}&daddr=${encodeURIComponent(address)}`;
+  } else if (provider === 'bing') {
+    mapUrl = `https://www.bing.com/maps?rtp=adr.${encodeURIComponent(hq)}~adr.${encodeURIComponent(address)}`;
+  } else {
+    // Default Google Maps
+    mapUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(hq)}&destination=${encodeURIComponent(address)}`;
+  }
+
+  window.open(mapUrl, '_blank');
+}
+
+function routeSelectedCustomers(selectedCustIds) {
+  const hq = appState.hqAddress || '';
+  if (!selectedCustIds || selectedCustIds.length === 0) return alert("Select at least one customer to build a route.");
+
+  const addresses = selectedCustIds
+    .map(id => appState.customers.find(c => c.id === id))
+    .filter(c => c && c.address)
+    .map(c => encodeURIComponent(c.address));
+
+  if (addresses.length === 0) return alert("No valid customer addresses found for selected items.");
+
+  let multiRouteUrl = `https://www.google.com/maps/dir/${encodeURIComponent(hq)}/` + addresses.join('/');
+  window.open(multiRouteUrl, '_blank');
+}
+
+// Optional Live Distance Matrix API Call (When Key Exists)
+async function fetchLiveDriveDistance(customerAddress) {
+  if (!appState.mapsApiKey || !appState.hqAddress || !customerAddress) return null;
+
+  try {
+    const url = `https://maps.googleapis.com/maps/api/distancematrix/json?origins=${encodeURIComponent(appState.hqAddress)}&destinations=${encodeURIComponent(customerAddress)}&key=${appState.mapsApiKey}`;
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if (data.status === 'OK' && data.rows[0].elements[0].status === 'OK') {
+      const distance = data.rows[0].elements[0].distance.text;
+      const duration = data.rows[0].elements[0].duration.text;
+      return { distance, duration };
+    }
+  } catch (err) {
+    console.warn("Distance Matrix API call failed, falling back to basic link:", err);
+  }
+  return null;
 }
