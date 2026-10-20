@@ -195,6 +195,7 @@ function attachEventListeners() {
 }
 
 function showTab(tabName) {
+  // Update Active Top Nav Tab Styles
   document.querySelectorAll('.top-nav-btn').forEach(btn => btn.classList.remove('active-nav-tab'));
   
   if (tabName === 'overview') document.getElementById('btnOverviewTab').classList.add('active-nav-tab');
@@ -202,9 +203,16 @@ function showTab(tabName) {
   if (tabName === 'invoices') document.getElementById('btnInvoicesTab').classList.add('active-nav-tab');
   if (tabName === 'settings') document.getElementById('btnSettingsTab').classList.add('active-nav-tab');
 
+  // Toggle Tab Sections
   document.getElementById('customerEditorSection').style.display = tabName === 'customer' ? 'block' : 'none';
   document.getElementById('invoicesSection').style.display = tabName === 'invoices' ? 'block' : 'none';
   document.getElementById('settingsSection').style.display = tabName === 'settings' ? 'block' : 'none';
+
+  // 🎯 TAB-AWARE COMMAND CENTER: Only show Overview Command Center on 'overview' tab!
+  const commandCenter = document.getElementById('northStarCommandCenter');
+  if (commandCenter) {
+    commandCenter.style.display = tabName === 'overview' ? 'block' : 'none';
+  }
 
   if (tabName === 'invoices') renderTabInvoiceTable();
   if (tabName === 'settings') loadSettingsForm();
@@ -445,6 +453,7 @@ function loadSettingsForm() {
   document.getElementById('settingHqAddress').value = appState.hqAddress || '';
   document.getElementById('settingMapProvider').value = appState.mapProvider || 'google';
   document.getElementById('settingShowMapButtons').value = appState.showMapButtons ? 'true' : 'false';
+  document.getElementById('settingMapsApiKey').value = appState.mapsApiKey || '';
 
   document.getElementById('settingSyncMode').value = appState.syncMode || 'local';
   document.getElementById('settingSyncUrl').value = appState.syncUrl || '';
@@ -476,6 +485,7 @@ function saveSettings() {
   appState.hqAddress = document.getElementById('settingHqAddress').value;
   appState.mapProvider = document.getElementById('settingMapProvider').value;
   appState.showMapButtons = document.getElementById('settingShowMapButtons').value === 'true';
+  appState.mapsApiKey = document.getElementById('settingMapsApiKey').value;
 
   appState.syncMode = document.getElementById('settingSyncMode').value;
   appState.syncUrl = document.getElementById('settingSyncUrl').value;
@@ -491,7 +501,7 @@ function saveSettings() {
   appState.services = document.getElementById('settingServices').value.split(',').map(s => s.trim()).filter(s => s.length > 0);
 
   saveState(); updateBrandingUI(); populateServicesDropdown(); renderCustomerList();
-  alert('All Settings & Mapping Preferences Saved Successfully!');
+  alert('All Settings Preferences Saved Successfully!');
 }
 
 function openCustomerMap(address) {
@@ -568,7 +578,7 @@ function resetToFactoryDefault() {
     appState = {
       presetTheme: 'lawn', theme: 'light', sidebarCollapsed: false, autoloadDefault: true,
       defaultTaxRate: 7.00, taxId: "", paymentTerms: "Payment due upon receipt.", paymentUrl: "",
-      invoiceFooterNote: "Thank you for your business!", hqAddress: "", mapProvider: "google", showMapButtons: false,
+      invoiceFooterNote: "Thank you for your business!", hqAddress: "", mapProvider: "google", showMapButtons: true,
       syncMode: 'local', syncUrl: '', mailerHeadline: presetThemes.lawn.headline, mailerCallout: presetThemes.lawn.callout,
       company: { name: presetThemes.lawn.name, details: "(555) 234-5678 | info@mybusiness.com", logo: "" },
       services: [...presetThemes.lawn.services],

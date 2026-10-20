@@ -475,31 +475,35 @@
       <div id="settingsSection" style="display:none;">
         <h2 style="margin-top:0; color:var(--primary);">⚙️ Business Profile, Sync & Application Preferences</h2>
 
-        <!-- MAPS & ROUTE SETTINGS WITH QUICK MAP TOGGLE -->
-        <div class="form-section" style="background:var(--accent); border:1px solid var(--primary); padding:10px; border-radius:6px;">
-          <h3>🗺️ Mapping & Route Preferences</h3>
-          <div class="grid-3">
-            <div class="form-group">
-              <label>HQ / Business Base Address</label>
-              <input type="text" id="settingHqAddress" class="form-control" placeholder="123 Main St, City, State Zip">
-            </div>
-            <div class="form-group">
-              <label>Preferred Map Provider</label>
-              <select id="settingMapProvider" class="form-control">
-                <option value="google">Google Maps</option>
-                <option value="apple">Apple Maps</option>
-                <option value="bing">Bing Maps</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>Display Quick Map Buttons (📍 Map)</label>
-              <select id="settingShowMapButtons" class="form-control">
-                <option value="false">Hidden (Default)</option>
-                <option value="true">Visible</option>
-              </select>
-            </div>
-          </div>
-        </div>
+        <!-- MAPS & ROUTE SETTINGS WITH QUICK MAP TOGGLE & OPTIONAL API KEY -->
+<div class="form-section" style="background:var(--accent); border:1px solid var(--primary); padding:10px; border-radius:6px;">
+  <h3>🗺️ Mapping & Route Preferences</h3>
+  <div class="grid-3">
+    <div class="form-group">
+      <label>HQ / Business Base Address</label>
+      <input type="text" id="settingHqAddress" class="form-control" placeholder="1 Fine Arts Dr, St. Louis, MO 63110">
+    </div>
+    <div class="form-group">
+      <label>Preferred Map Provider</label>
+      <select id="settingMapProvider" class="form-control">
+        <option value="google">Google Maps</option>
+        <option value="apple">Apple Maps</option>
+        <option value="bing">Bing Maps</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Display Quick Map Buttons (📍 Map)</label>
+      <select id="settingShowMapButtons" class="form-control">
+        <option value="false">Hidden</option>
+        <option value="true">Visible (Default)</option>
+      </select>
+    </div>
+  </div>
+  <div class="form-group" style="margin-top: 6px;">
+    <label>Google Maps API Key (Optional)</label>
+    <input type="password" id="settingMapsApiKey" class="form-control" placeholder="AIzaSy...">
+  </div>
+</div>
         
         <!-- REMOTE SERVER SYNC ENGINE -->
         <div class="form-section">
