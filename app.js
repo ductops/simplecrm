@@ -648,22 +648,31 @@ function renderCustomerList() {
   filtered.forEach(c => {
     const li = document.createElement('li');
     li.className = `customer-item ${c.id === appState.selectedCustomerId ? 'active' : ''}`;
-    li.onclick = (e) => { 
-      if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'BUTTON') {
-        showTab('customer'); loadCustomerIntoForm(c.id); 
-      }
-    };
     
+    // Pure JS Event Listener for card selection
+    li.addEventListener('click', (e) => { 
+      if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'BUTTON') {
+        showTab('customer'); 
+        loadCustomerIntoForm(c.id); 
+      }
+    });
+
     const mapBtnHtml = showMapBtns ? `<button type="button" class="btn btn-sm btn-secondary btn-quick-map" title="Map Single Stop">📍 Map</button>` : '';
 
     li.innerHTML = `
       <h4>
-        <span><input type="checkbox" class="cust-route-checkbox" value="${c.id}" onclick="event.stopPropagation();"> ${c.name || 'Unnamed Record'}</span>
+        <span><input type="checkbox" class="cust-route-checkbox" value="${c.id}"> ${c.name || 'Unnamed Record'}</span>
         ${mapBtnHtml}
       </h4>
       <p>${getFullCustomerAddress(c) || 'No Address'}</p>
       <p><strong>${c.service}</strong> - $${c.price || '0.00'}</p>
     `;
+
+    // Prevent checkbox clicks from triggering card click event
+    const chk = li.querySelector('.cust-route-checkbox');
+    if (chk) {
+      chk.addEventListener('click', (e) => e.stopPropagation());
+    }
 
     if (showMapBtns) {
       const qMap = li.querySelector('.btn-quick-map');
