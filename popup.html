@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Service Business Manager Pro v1.8.0</title>
+  <title>Service Business Manager Pro v1.8.1</title>
   <style>
     :root[data-preset="lawn"] { --primary: #2e7d32; --primary-hover: #1b5e20; --accent: #e8f5e9; --active-tab: #1b5e20; }
     :root[data-preset="wash"] { --primary: #0277bd; --primary-hover: #01579b; --accent: #e1f5fe; --active-tab: #01579b; }
@@ -153,7 +153,7 @@
     <div class="header-branding">
       <img id="displayCompanyLogo" class="company-logo" style="display:none;" alt="Company Logo">
       <div>
-        <h1 id="displayCompanyName">🌱 Business Manager <span class="version-tag">v1.8.0 Pro</span></h1>
+        <h1 id="displayCompanyName">🌱 Business Manager <span class="version-tag">v1.8.1 Pro</span></h1>
         <small id="displayCompanyDetails" style="color:var(--text-muted);"></small>
       </div>
     </div>
@@ -172,7 +172,7 @@
       <div class="sidebar-content">
         <h3 style="margin-top:0; font-size:0.95rem;">Customer Directory</h3>
         <div class="controls">
-          <input type="text" id="search" class="search-bar" placeholder="Search name or site...">
+          <input type="text" id="search" class="search-bar" placeholder="Search name, street, or city...">
           <select id="statusFilter" class="search-bar">
             <option value="ALL">All Statuses</option>
             <option value="Active Contract">Active Contract</option>
@@ -180,7 +180,10 @@
             <option value="Lead/Quote">Lead/Quote</option>
             <option value="Inactive">Inactive</option>
           </select>
-          <button type="button" class="btn btn-sm btn-block" id="btnRouteSelectedSidebar" style="margin-top:4px;">🗺️ Route Selected Items</button>
+          <div style="display:flex; gap:4px; margin-top:4px;">
+            <button type="button" class="btn btn-sm" id="btnRouteSelectedSidebar" style="flex:1;">🗺️ Route Selected</button>
+            <button type="button" class="btn btn-sm btn-danger" id="btnDeleteSelectedSidebar" style="flex:1;">🗑️ Delete Selected</button>
+          </div>
         </div>
         <ul id="customerList" class="customer-list"></ul>
       </div>
@@ -195,7 +198,6 @@
           <button type="button" class="btn btn-sm" id="btnNewCustomerFromDashboard">+ New Customer</button>
         </div>
 
-        <!-- Metric Stat Cards -->
         <div class="grid-4" style="margin-bottom:10px;">
           <div class="stat-card">
             <h4>Unpaid Receivables</h4>
@@ -215,7 +217,6 @@
           </div>
         </div>
 
-        <!-- Actionable Reminders Widget -->
         <div class="form-section" style="background:var(--accent); border:1px solid var(--primary); border-radius:6px; padding:10px; margin-bottom:10px;">
           <h3 style="margin-top:0; font-size:0.88rem; display:flex; justify-content:space-between; align-items:center;">
             <span>🔔 Actionable Reminders & Customer Alerts</span>
@@ -239,7 +240,6 @@
           </div>
         </div>
 
-        <!-- Unpaid Invoices & Balance Sheet Widget -->
         <div class="form-section" style="margin-bottom:0; padding-bottom:0; border-bottom:none;">
           <h3 style="margin-top:0; font-size:0.88rem; display:flex; justify-content:space-between; align-items:center;">
             <span>🧾 Unpaid Invoices & Balance Sheet</span>
@@ -283,7 +283,7 @@
           <div class="form-section">
             <div style="display:flex; justify-content:space-between; align-items:center;">
               <h3>1. Customer Information</h3>
-              <button type="button" class="btn btn-sm btn-secondary" id="btnOpenSingleMap">📍 Map Directions</button>
+              <button type="button" class="btn btn-sm btn-secondary map-action-btn" id="btnOpenSingleMap" style="display:none;">📍 Map Directions</button>
             </div>
             <div class="grid-3" style="margin-top:6px;">
               <div class="form-group">
@@ -305,8 +305,22 @@
                 <input type="email" id="custEmail" class="form-control">
               </div>
               <div class="form-group">
-                <label>Service Address</label>
-                <input type="text" id="custAddress" class="form-control" required>
+                <label>Service Street Address</label>
+                <input type="text" id="custAddress" class="form-control" placeholder="742 Evergreen Terrace" required>
+              </div>
+            </div>
+            <div class="grid-3">
+              <div class="form-group">
+                <label>City</label>
+                <input type="text" id="custCity" class="form-control" placeholder="University City">
+              </div>
+              <div class="form-group">
+                <label>State</label>
+                <input type="text" id="custState" class="form-control" placeholder="MO">
+              </div>
+              <div class="form-group">
+                <label>Zip Code</label>
+                <input type="text" id="custZip" class="form-control" placeholder="63130">
               </div>
             </div>
           </div>
@@ -457,11 +471,11 @@
         </div>
       </div>
 
-      <!-- TAB 3: SETTINGS & MAP CONFIGURATION -->
+      <!-- TAB 3: SETTINGS -->
       <div id="settingsSection" style="display:none;">
-        <h2 style="margin-top:0; color:var(--primary);">⚙️ Business Profile, Sync & Mapping Preferences</h2>
+        <h2 style="margin-top:0; color:var(--primary);">⚙️ Business Profile, Sync & Application Preferences</h2>
 
-        <!-- MAPS & ROUTE SETTINGS -->
+        <!-- MAPS & ROUTE SETTINGS WITH QUICK MAP TOGGLE -->
         <div class="form-section" style="background:var(--accent); border:1px solid var(--primary); padding:10px; border-radius:6px;">
           <h3>🗺️ Mapping & Route Preferences</h3>
           <div class="grid-3">
@@ -478,8 +492,11 @@
               </select>
             </div>
             <div class="form-group">
-              <label>Google Maps API Key (Optional)</label>
-              <input type="password" id="settingMapsApiKey" class="form-control" placeholder="AIzaSy...">
+              <label>Display Quick Map Buttons (📍 Map)</label>
+              <select id="settingShowMapButtons" class="form-control">
+                <option value="false">Hidden (Default)</option>
+                <option value="true">Visible</option>
+              </select>
             </div>
           </div>
         </div>
@@ -576,111 +593,36 @@
           </div>
         </div>
 
+        <!-- COLLAPSIBLE DATABASE LIBRARY & SYSTEM RESET SECTION -->
         <div class="form-section">
-          <h3>💾 Database Library & System Reset</h3>
-          <div style="display:flex; gap:6px; flex-wrap:wrap;">
-            <button type="button" class="btn btn-sm" id="btnSaveLibraryState">💾 Save Database State</button>
-            <button type="button" class="btn btn-sm btn-secondary" id="btnExportJSON">Export JSON</button>
-            <button type="button" class="btn btn-sm btn-secondary" id="btnExportCSV">Export CSV</button>
-            <input type="file" id="importFile" style="display:none">
-            <button type="button" class="btn btn-sm btn-secondary" id="btnImportJSON">Import JSON</button>
-            <button type="button" class="btn btn-sm btn-danger" id="btnResetFactoryDefault">💣 Reset to Factory Default</button>
-          </div>
-        </div>
-
-        <button type="button" class="btn" id="btnSaveSettings">Save All Configuration Preferences</button>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- Create/Edit Invoice Modal -->
-  <div id="createInvoiceModal" class="modal">
-    <div class="modal-content" style="max-width: 500px;">
-      <div class="modal-header">
-        <h3 id="invoiceFormTitle">Create / Edit Invoice</h3>
-        <button type="button" class="close-btn" id="btnCloseCreateInvoiceModal">&times;</button>
-      </div>
-      <form id="invoiceForm" onsubmit="event.preventDefault();">
-        <input type="hidden" id="invId">
-        <div class="form-group">
-          <label>Select Customer</label>
-          <select id="invCustomerId" class="form-control" required></select>
-        </div>
-        <div class="grid-2">
-          <div class="form-group">
-            <label>Invoice Number</label>
-            <input type="text" id="invNum" class="form-control" required>
-          </div>
-          <div class="form-group">
-            <label>Invoice Date</label>
-            <input type="date" id="invDate" class="form-control" required>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label>Primary Service Preset</label>
-          <select id="invServicePreset" class="form-control"></select>
-        </div>
-
-        <div class="form-group">
-          <label>Service Description</label>
-          <input type="text" id="invDescription" class="form-control" required>
-        </div>
-        
-        <div class="grid-2">
-          <div class="form-group">
-            <label>Subtotal Amount ($)</label>
-            <input type="number" step="0.01" id="invAmount" class="form-control" placeholder="0.00" required>
-          </div>
-          <div class="form-group">
-            <label>Payment Status</label>
-            <select id="invStatus" class="form-control">
-              <option value="Unpaid">Unpaid</option>
-              <option value="Paid">Paid</option>
-              <option value="Overdue">Overdue</option>
-            </select>
-          </div>
-        </div>
-
-        <div style="background:var(--accent); padding:8px; border-radius:6px; margin-top:6px;">
           <div style="display:flex; justify-content:space-between; align-items:center;">
-            <label style="font-weight:bold; font-size:0.8rem;">
-              <input type="checkbox" id="invApplyTax"> Apply Sales Tax
-            </label>
-            <div style="display:flex; align-items:center; gap:5px; width:130px;">
-              <label style="font-size:0.75rem; font-weight:bold;">Rate (%):</label>
-              <input type="number" step="0.01" id="invTaxRate" class="form-control" style="margin-bottom:0;" placeholder="0.00">
-            </div>
+            <h3 style="margin:0;">💾 Database Library & System Reset</h3>
+            <button type="button" class="btn btn-sm btn-secondary" id="btnToggleDatabaseActions">▼ Show Database & System Actions</button>
           </div>
-
-          <div class="tax-summary-box" style="margin-top:6px;">
-            <div style="display:flex; justify-content:space-between; margin-bottom:3px;">
-              <span>Subtotal:</span>
-              <strong id="calcSubtotal">$0.00</strong>
-            </div>
-            <div style="display:flex; justify-content:space-between; margin-bottom:3px;">
-              <span>Sales Tax (<span id="calcTaxRateLabel">0</span>%):</span>
-              <strong id="calcTaxAmount">$0.00</strong>
-            </div>
-            <hr style="margin:4px 0; border:none; border-top:1px solid var(--primary);">
-            <div style="display:flex; justify-content:space-between; font-size:0.9rem; color:var(--primary);">
-              <span>Grand Total:</span>
-              <strong id="calcGrandTotal">$0.00</strong>
+          <div id="databaseActionsBox" class="widget-container-box collapsed-mode" style="margin-top:10px;">
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+              <button type="button" class="btn btn-sm" id="btnSaveLibraryState">💾 Save Database State</button>
+              <button type="button" class="btn btn-sm btn-secondary" id="btnExportJSON">Export JSON</button>
+              <button type="button" class="btn btn-sm btn-secondary" id="btnExportCSV">Export CSV</button>
+              <input type="file" id="importFile" style="display:none" accept=".json,.enc,.vault">
+              <button type="button" class="btn btn-sm btn-secondary" id="btnImportJSON">Import JSON</button>
+              <button type="button" class="btn btn-sm btn-danger" id="btnResetFactoryDefault">💣 Reset to Factory Default</button>
             </div>
           </div>
         </div>
 
-        <div style="display:flex; justify-content:flex-end; gap:6px; margin-top:10px;">
-          <button type="button" class="btn btn-secondary" id="btnCancelInvoiceForm">Cancel</button>
-          <button type="button" class="btn" id="btnSubmitInvoiceForm">Save Invoice</button>
+        <div style="display:flex; gap:8px; margin-top:14px;">
+          <button type="button" class="btn" id="btnSaveSettings">Save All Configuration Preferences</button>
+          <button type="button" class="btn btn-secondary" id="btnSaveOfflineSettings">💾 Save Offline (Backup)</button>
         </div>
-      </form>
+      </div>
+
     </div>
   </div>
 
   <iframe id="printFrame" style="display:none; position:absolute; width:0; height:0; border:none;"></iframe>
 
+  <script src="cryptoHelper.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

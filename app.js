@@ -23,12 +23,12 @@ let appState = {
   presetTheme: 'lawn', theme: 'light', sidebarCollapsed: false, autoloadDefault: true,
   defaultTaxRate: 7.00, taxId: "", paymentTerms: "Payment due upon receipt.", paymentUrl: "",
   invoiceFooterNote: "Thank you for your business!",
-  hqAddress: "", mapProvider: "google", mapsApiKey: "",
+  hqAddress: "", mapProvider: "google", showMapButtons: false,
   syncMode: 'local', syncUrl: '',
   mailerHeadline: presetThemes.lawn.headline, mailerCallout: presetThemes.lawn.callout,
   company: { name: presetThemes.lawn.name, details: "(555) 234-5678 | info@mybusiness.com", logo: "" },
   services: [...presetThemes.lawn.services],
-  customers: [], invoices: [], selectedCustomerId: null, selectedRouteCustIds: []
+  customers: [], invoices: [], selectedCustomerId: null
 };
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -59,45 +59,70 @@ function initApp() {
 }
 
 function loadSampleData() {
+  appState.hqAddress = "1 Fine Arts Dr, St. Louis, MO 63110"; // Saint Louis Art Museum (HQ)
+  
   appState.customers = [
     {
       id: 101, 
       name: "John Doe", 
       ownerTitle: "The Doe Family", 
-      phone: "(555) 019-2831", 
-      email: "john@example.com", 
-      address: "742 Evergreen Terrace",
+      phone: "(314) 555-0192", 
+      email: "johndoe@example.com", 
+      address: "1 Brookings Dr", 
+      city: "St. Louis", 
+      state: "MO", 
+      zip: "63130", // Washington University Campus
       size: "5,500 sq ft", 
       gate: "36-inch side gate", 
       grass: "Fescue / Flat yard", 
       equipment: "Walk Mower, Edger",
       internalCost: "22.50", 
-      reminderDate: new Date().toISOString().slice(0, 10), 
+      reminderDate: "2026-10-25", 
       reminderNote: "Call for Fall Aeration quote",
       service: appState.services[0] || "General Service", 
       frequency: "Weekly", 
       status: "Active Contract", 
       price: "45.00", 
       payment: "Credit Card"
+    },
+    {
+      id: 102, 
+      name: "Jane Doe", 
+      ownerTitle: "The Doe Family", 
+      phone: "(314) 555-1212", 
+      email: "janedoe@example.com", 
+      address: "4344 Shaw Blvd", 
+      city: "St. Louis", 
+      state: "MO", 
+      zip: "63110", // Missouri Botanical Garden
+      size: "12,000 sq ft", 
+      gate: "Double gate access", 
+      grass: "Bermuda", 
+      equipment: "Ride Mower",
+      internalCost: "40.00", 
+      service: appState.services[1] || "Full Maintenance", 
+      frequency: "Bi-Weekly", 
+      status: "Active Contract", 
+      price: "85.00", 
+      payment: "Check"
     }
   ];
 
   appState.invoices = [
     {
-      id: 1001, 
-      customerId: 101, 
-      number: "INV-1001", 
-      date: new Date().toISOString().slice(0, 10), 
-      description: "Monthly Recurring Service Contract",
-      amount: "180.00", 
-      applyTax: true, 
-      taxRate: 7.00, 
-      status: "Unpaid"
+      id: 1001, customerId: 101, number: "INV-6382", date: "2026-10-01", description: "Monthly Recurring Service Contract",
+      amount: "200.00", applyTax: true, taxRate: 7.00, status: "Unpaid"
     }
   ];
 }
 
 function saveState() { localStorage.setItem('multiTradeCrmData', JSON.stringify(appState)); }
+
+function getFullCustomerAddress(c) {
+  if (!c) return '';
+  const parts = [c.address, c.city, c.state, c.zip].filter(p => p && p.trim().length > 0);
+  return parts.join(', ');
+}
 
 function attachEventListeners() {
   document.getElementById('btnOverviewTab').addEventListener('click', () => showTab('overview'));
@@ -109,25 +134,29 @@ function attachEventListeners() {
   document.getElementById('btnNewCustomer').addEventListener('click', () => { showTab('customer'); createNewCustomer(); });
   document.getElementById('btnTabNewInvoice').addEventListener('click', () => openInvoiceCreateModal());
 
-  // Command Center Widget Height & Collapse Toggles
+  // Collapsible Toggles
   document.getElementById('btnToggleRemindersHeight').addEventListener('click', () => toggleWidgetHeight('remindersContainerBox', 'btnToggleRemindersHeight'));
   document.getElementById('btnToggleRemindersCollapse').addEventListener('click', () => toggleWidgetCollapse('remindersContainerBox', 'btnToggleRemindersCollapse'));
   document.getElementById('btnToggleInvoicesHeight').addEventListener('click', () => toggleWidgetHeight('invoicesContainerBox', 'btnToggleInvoicesHeight'));
   document.getElementById('btnToggleInvoicesCollapse').addEventListener('click', () => toggleWidgetCollapse('invoicesContainerBox', 'btnToggleInvoicesCollapse'));
+  
+  document.getElementById('btnToggleDatabaseActions').addEventListener('click', () => toggleWidgetCollapse('databaseActionsBox', 'btnToggleDatabaseActions'));
 
   document.getElementById('btnToggleSidebar').addEventListener('click', toggleSidebar);
   document.getElementById('btnToggleTheme').addEventListener('click', toggleTheme);
   
   document.getElementById('btnSaveSettings').addEventListener('click', saveSettings);
+  document.getElementById('btnSaveOfflineSettings').addEventListener('click', exportJSON);
   document.getElementById('btnTestServerSync').addEventListener('click', testServerSync);
   document.getElementById('settingPresetTheme').addEventListener('change', onPresetThemeChange);
   document.getElementById('logoUpload').addEventListener('change', handleLogoUpload);
 
   document.getElementById('btnOpenSingleMap').addEventListener('click', () => {
     const cust = appState.customers.find(c => c.id === appState.selectedCustomerId);
-    if (cust) openCustomerMap(cust.address);
+    if (cust) openCustomerMap(getFullCustomerAddress(cust));
   });
   document.getElementById('btnRouteSelectedSidebar').addEventListener('click', routeSelectedCustomers);
+  document.getElementById('btnDeleteSelectedSidebar').addEventListener('click', deleteSelectedCustomers);
 
   document.getElementById('btnSaveLibraryState').addEventListener('click', () => { saveState(); alert('Workbook library saved!'); });
   document.getElementById('btnExportJSON').addEventListener('click', exportJSON);
@@ -194,7 +223,7 @@ function toggleWidgetCollapse(boxId, btnId) {
   const box = document.getElementById(boxId);
   const btn = document.getElementById(btnId);
   box.classList.toggle('collapsed-mode');
-  btn.textContent = box.classList.contains('collapsed-mode') ? '▲ Expand' : '▼ Minimize';
+  btn.textContent = box.classList.contains('collapsed-mode') ? '▲ Show Actions' : '▼ Minimize';
 }
 
 function populateRolodexDropdown() {
@@ -202,7 +231,10 @@ function populateRolodexDropdown() {
   const search = document.getElementById('rolodexSearch').value.toLowerCase();
   sel.innerHTML = '';
 
-  const filtered = appState.customers.filter(c => c.name.toLowerCase().includes(search) || c.address.toLowerCase().includes(search));
+  const filtered = appState.customers.filter(c => {
+    const fullAddr = getFullCustomerAddress(c).toLowerCase();
+    return c.name.toLowerCase().includes(search) || fullAddr.includes(search);
+  });
 
   if (filtered.length === 0) {
     sel.innerHTML = `<option value="">No matching customers</option>`;
@@ -212,7 +244,7 @@ function populateRolodexDropdown() {
   filtered.forEach(c => {
     const opt = document.createElement('option');
     opt.value = c.id;
-    opt.textContent = `📇 ${c.name} — ${c.address} (${c.service})`;
+    opt.textContent = `📇 ${c.name} — ${getFullCustomerAddress(c)} (${c.service})`;
     if (c.id === appState.selectedCustomerId) opt.selected = true;
     sel.appendChild(opt);
   });
@@ -412,8 +444,8 @@ function applyTheme(theme) { document.documentElement.setAttribute('data-theme',
 function loadSettingsForm() {
   document.getElementById('settingHqAddress').value = appState.hqAddress || '';
   document.getElementById('settingMapProvider').value = appState.mapProvider || 'google';
-  document.getElementById('settingMapsApiKey').value = appState.mapsApiKey || '';
-  
+  document.getElementById('settingShowMapButtons').value = appState.showMapButtons ? 'true' : 'false';
+
   document.getElementById('settingSyncMode').value = appState.syncMode || 'local';
   document.getElementById('settingSyncUrl').value = appState.syncUrl || '';
   document.getElementById('settingPresetTheme').value = appState.presetTheme || 'lawn';
@@ -443,7 +475,7 @@ function saveSettings() {
   
   appState.hqAddress = document.getElementById('settingHqAddress').value;
   appState.mapProvider = document.getElementById('settingMapProvider').value;
-  appState.mapsApiKey = document.getElementById('settingMapsApiKey').value;
+  appState.showMapButtons = document.getElementById('settingShowMapButtons').value === 'true';
 
   appState.syncMode = document.getElementById('settingSyncMode').value;
   appState.syncUrl = document.getElementById('settingSyncUrl').value;
@@ -458,7 +490,7 @@ function saveSettings() {
   appState.mailerCallout = document.getElementById('settingMailerCallout').value;
   appState.services = document.getElementById('settingServices').value.split(',').map(s => s.trim()).filter(s => s.length > 0);
 
-  saveState(); updateBrandingUI(); populateServicesDropdown();
+  saveState(); updateBrandingUI(); populateServicesDropdown(); renderCustomerList();
   alert('All Settings & Mapping Preferences Saved Successfully!');
 }
 
@@ -489,13 +521,29 @@ function routeSelectedCustomers() {
 
   const addresses = selectedIds
     .map(id => appState.customers.find(c => c.id === id))
-    .filter(c => c && c.address)
-    .map(c => encodeURIComponent(c.address));
+    .filter(c => c && getFullCustomerAddress(c))
+    .map(c => encodeURIComponent(getFullCustomerAddress(c)));
 
   if (addresses.length === 0) return alert("No valid customer addresses found for selected items.");
 
   let multiRouteUrl = `https://www.google.com/maps/dir/${encodeURIComponent(hq)}/` + addresses.join('/');
   window.open(multiRouteUrl, '_blank');
+}
+
+function deleteSelectedCustomers() {
+  const checkboxes = document.querySelectorAll('.cust-route-checkbox:checked');
+  const selectedIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+
+  if (selectedIds.length === 0) return alert("Check at least one customer box in the directory to delete.");
+
+  if (confirm(`Are you sure you want to delete ${selectedIds.length} selected customer record(s) and their invoices?`)) {
+    appState.customers = appState.customers.filter(c => !selectedIds.includes(c.id));
+    appState.invoices = appState.invoices.filter(i => !selectedIds.includes(i.customerId));
+    appState.selectedCustomerId = appState.customers.length > 0 ? appState.customers[0].id : null;
+
+    saveState(); renderCustomerList(); populateRolodexDropdown(); renderYouViewOverview();
+    if (appState.selectedCustomerId) loadCustomerIntoForm(appState.selectedCustomerId);
+  }
 }
 
 async function testServerSync() {
@@ -520,7 +568,7 @@ function resetToFactoryDefault() {
     appState = {
       presetTheme: 'lawn', theme: 'light', sidebarCollapsed: false, autoloadDefault: true,
       defaultTaxRate: 7.00, taxId: "", paymentTerms: "Payment due upon receipt.", paymentUrl: "",
-      invoiceFooterNote: "Thank you for your business!", hqAddress: "", mapProvider: "google", mapsApiKey: "",
+      invoiceFooterNote: "Thank you for your business!", hqAddress: "", mapProvider: "google", showMapButtons: false,
       syncMode: 'local', syncUrl: '', mailerHeadline: presetThemes.lawn.headline, mailerCallout: presetThemes.lawn.callout,
       company: { name: presetThemes.lawn.name, details: "(555) 234-5678 | info@mybusiness.com", logo: "" },
       services: [...presetThemes.lawn.services],
@@ -542,14 +590,24 @@ function updateBrandingUI() {
 function populateServicesDropdown() {
   const sel = document.getElementById('primaryService');
   const invSel = document.getElementById('invServicePreset');
-  const val = sel.value;
   
+  // Guard clause to prevent setting properties on null elements
+  if (!sel || !invSel) return;
+
+  const val = sel.value;
   sel.innerHTML = '';
   invSel.innerHTML = '<option value="">-- Custom Line Item --</option>';
 
   (appState.services || []).forEach(s => {
-    const opt = document.createElement('option'); opt.value = s; opt.textContent = s; sel.appendChild(opt);
-    const invOpt = document.createElement('option'); invOpt.value = s; invOpt.textContent = s; invSel.appendChild(invOpt);
+    const opt = document.createElement('option'); 
+    opt.value = s; 
+    opt.textContent = s; 
+    sel.appendChild(opt);
+
+    const invOpt = document.createElement('option'); 
+    invOpt.value = s; 
+    invOpt.textContent = s; 
+    invSel.appendChild(invOpt);
   });
   
   if (val) sel.value = val;
@@ -575,10 +633,17 @@ function renderCustomerList() {
   list.innerHTML = '';
 
   const filtered = appState.customers.filter(c => {
-    const matchesSearch = c.name.toLowerCase().includes(search) || c.address.toLowerCase().includes(search);
+    const fullAddr = getFullCustomerAddress(c).toLowerCase();
+    const matchesSearch = c.name.toLowerCase().includes(search) || fullAddr.includes(search);
     const matchesStatus = statusFilter === 'ALL' || c.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  const showMapBtns = appState.showMapButtons === true;
+
+  // Toggle map button on single editor view
+  const singleMapBtn = document.getElementById('btnOpenSingleMap');
+  if (singleMapBtn) singleMapBtn.style.display = showMapBtns ? 'inline-flex' : 'none';
 
   filtered.forEach(c => {
     const li = document.createElement('li');
@@ -589,19 +654,26 @@ function renderCustomerList() {
       }
     };
     
+    const mapBtnHtml = showMapBtns ? `<button type="button" class="btn btn-sm btn-secondary btn-quick-map" title="Map Single Stop">📍 Map</button>` : '';
+
     li.innerHTML = `
       <h4>
         <span><input type="checkbox" class="cust-route-checkbox" value="${c.id}" onclick="event.stopPropagation();"> ${c.name || 'Unnamed Record'}</span>
-        <button type="button" class="btn btn-sm btn-secondary btn-quick-map" title="Map Single Stop">📍 Map</button>
+        ${mapBtnHtml}
       </h4>
-      <p>${c.address || 'No Address'}</p>
+      <p>${getFullCustomerAddress(c) || 'No Address'}</p>
       <p><strong>${c.service}</strong> - $${c.price || '0.00'}</p>
     `;
 
-    li.querySelector('.btn-quick-map').addEventListener('click', (evt) => {
-      evt.stopPropagation();
-      openCustomerMap(c.address);
-    });
+    if (showMapBtns) {
+      const qMap = li.querySelector('.btn-quick-map');
+      if (qMap) {
+        qMap.addEventListener('click', (evt) => {
+          evt.stopPropagation();
+          openCustomerMap(getFullCustomerAddress(c));
+        });
+      }
+    }
 
     list.appendChild(li);
   });
@@ -617,6 +689,10 @@ function loadCustomerIntoForm(id) {
   document.getElementById('custPhone').value = c.phone || '';
   document.getElementById('custEmail').value = c.email || '';
   document.getElementById('custAddress').value = c.address || '';
+  document.getElementById('custCity').value = c.city || '';
+  document.getElementById('custState').value = c.state || '';
+  document.getElementById('custZip').value = c.zip || '';
+
   document.getElementById('propertySize').value = c.size || '';
   document.getElementById('gateCode').value = c.gate || '';
   document.getElementById('grassType').value = c.grass || '';
@@ -644,7 +720,8 @@ function loadCustomerIntoForm(id) {
 
 function createNewCustomer() {
   const newCust = {
-    id: Date.now(), name: "New Customer", ownerTitle: "", phone: "", email: "", address: "", size: "", gate: "", grass: "",
+    id: Date.now(), name: "New Customer", ownerTitle: "", phone: "", email: "", 
+    address: "", city: "", state: "", zip: "", size: "", gate: "", grass: "",
     equipment: "", internalCost: "", reminderDate: "", reminderNote: "",
     service: appState.services[0] || "Service Call", frequency: "Weekly", status: "Lead/Quote", price: "0.00", payment: "Credit Card"
   };
@@ -661,6 +738,10 @@ function saveCurrentCustomer() {
   c.phone = document.getElementById('custPhone').value;
   c.email = document.getElementById('custEmail').value;
   c.address = document.getElementById('custAddress').value;
+  c.city = document.getElementById('custCity').value;
+  c.state = document.getElementById('custState').value;
+  c.zip = document.getElementById('custZip').value;
+
   c.size = document.getElementById('propertySize').value;
   c.gate = document.getElementById('gateCode').value;
   c.grass = document.getElementById('grassType').value;
@@ -784,7 +865,7 @@ function deleteInvoice(invId) {
 
 function populateInvoiceCustomerDropdown() {
   const sel = document.getElementById('invCustomerId');
-  sel.innerHTML = appState.customers.map(c => `<option value="${c.id}">${c.name} (${c.address})</option>`).join('');
+  sel.innerHTML = appState.customers.map(c => `<option value="${c.id}">${c.name} (${getFullCustomerAddress(c)})</option>`).join('');
 }
 
 function openInvoiceModalForCurrentCustomer() {
@@ -900,7 +981,7 @@ function printCustomerDocument(type) {
         <hr>
         <h3>Customer Service Card</h3>
         <p><strong>Name / Title:</strong> ${cust.name} ${cust.ownerTitle ? `(${cust.ownerTitle})` : ''}</p>
-        <p><strong>Address:</strong> ${cust.address}</p>
+        <p><strong>Address:</strong> ${getFullCustomerAddress(cust)}</p>
         <p><strong>Phone:</strong> ${cust.phone} | <strong>Email:</strong> ${cust.email}</p>
         <hr>
         <p><strong>Service:</strong> ${cust.service} (${cust.frequency})</p>
@@ -919,7 +1000,7 @@ function printCustomerDocument(type) {
         ${logoHtml}
         <h2 style="margin-top:0; color:#333;">${appState.company.name}</h2>
         <h3 style="color:#555; margin-bottom:15px;">${headline}</h3>
-        <p>Greetings <strong>${greetingName}</strong> at <strong>${cust.address}</strong>!</p>
+        <p>Greetings <strong>${greetingName}</strong> at <strong>${getFullCustomerAddress(cust)}</strong>!</p>
         <p>We provide professional ${appState.services.slice(0, 3).join(', ')} services right here in your area.</p>
         <div style="background:#f4f6f8; border:1px solid #333; padding:12px; margin:15px 0; border-radius:6px;">
           <h3 style="margin:0; font-size:1.1rem;">${callout}</h3>
@@ -973,7 +1054,7 @@ function printSingleInvoice(invoiceId) {
         <div>
           <strong>Billed To:</strong><br>
           ${cust.name || 'Valued Customer'} ${cust.ownerTitle ? `(${cust.ownerTitle})` : ''}<br>
-          ${cust.address || ''}<br>
+          ${getFullCustomerAddress(cust)}<br>
           ${cust.phone || ''}<br>
           ${cust.email || ''}
         </div>
@@ -1038,107 +1119,9 @@ function executeIframePrint(htmlContent) {
   setTimeout(() => { frame.contentWindow.focus(); frame.contentWindow.print(); }, 300);
 }
 
-/**
- * Web Crypto API Utility (AES-256-GCM + PBKDF2)
- * High-security client-side encryption for JSON exports/imports
- */
-
-const CryptoEngine = {
-  // Convert ArrayBuffer to Hex String
-  bufToHex(buffer) {
-    return Array.from(new Uint8Array(buffer))
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('');
-  },
-
-  // Convert Hex String to Uint8Array
-  hexToBuf(hexString) {
-    const bytes = new Uint8Array(Math.ceil(hexString.length / 2));
-    for (let i = 0; i < bytes.length; i++) {
-      bytes[i] = parseInt(hexString.substr(i * 2, 2), 16);
-    }
-    return bytes;
-  },
-
-  // Derive AES-256-GCM Key using PBKDF2 (100,000 iterations, SHA-256)
-  async deriveKey(password, salt) {
-    const enc = new TextEncoder();
-    const keyMaterial = await window.crypto.subtle.importKey(
-      "raw",
-      enc.encode(password),
-      { name: "PBKDF2" },
-      false,
-      ["deriveKey"]
-    );
-
-    return window.crypto.subtle.deriveKey(
-      {
-        name: "PBKDF2",
-        salt: salt,
-        iterations: 100000,
-        hash: "SHA-256"
-      },
-      keyMaterial,
-      { name: "AES-GCM", length: 256 },
-      false,
-      ["encrypt", "decrypt"]
-    );
-  },
-
-  // Encrypt Plaintext Data String with Password
-  async encryptData(dataString, password) {
-    const enc = new TextEncoder();
-    const salt = window.crypto.getRandomValues(new Uint8Array(16)); // 16-byte random salt
-    const iv = window.crypto.getRandomValues(new Uint8Array(12));   // 12-byte GCM IV
-
-    const key = await this.deriveKey(password, salt);
-
-    const ciphertextBuffer = await window.crypto.subtle.encrypt(
-      { name: "AES-GCM", iv: iv },
-      key,
-      enc.encode(dataString)
-    );
-
-    return JSON.stringify({
-      version: "AES-256-GCM-PBKDF2",
-      salt: this.bufToHex(salt),
-      iv: this.bufToHex(iv),
-      ciphertext: this.bufToHex(ciphertextBuffer)
-    }, null, 2);
-  },
-
-  // Decrypt Encrypted Payload Object with Password
-  async decryptData(encryptedPayload, password) {
-    const dec = new TextDecoder();
-    
-    // Parse payload if passed as string
-    const payload = typeof encryptedPayload === 'string' ? JSON.parse(encryptedPayload) : encryptedPayload;
-    
-    if (!payload.salt || !payload.iv || !payload.ciphertext) {
-      throw new Error("Invalid encrypted file payload format.");
-    }
-
-    const salt = this.hexToBuf(payload.salt);
-    const iv = this.hexToBuf(payload.iv);
-    const ciphertext = this.hexToBuf(payload.ciphertext);
-
-    const key = await this.deriveKey(password, salt);
-
-    const decryptedBuffer = await window.crypto.subtle.decrypt(
-      { name: "AES-GCM", iv: iv },
-      key,
-      ciphertext
-    );
-
-    return dec.decode(decryptedBuffer);
-  }
-};
-
-// 🔐 AES-256 Password-Protected Export Handler
+// 🔐 AES-256 Encrypted Export Handler
 async function exportJSON() {
   const password = prompt("🔐 Enter a master passphrase to encrypt your CRM database backup (or leave blank for unencrypted JSON):");
-  
-  // User pressed Cancel on prompt
   if (password === null) return;
 
   const dataString = JSON.stringify(appState, null, 2);
@@ -1146,9 +1129,7 @@ async function exportJSON() {
 
   if (password.trim().length > 0) {
     try {
-      // Perform AES-256-GCM Encryption
       const encryptedPayload = await CryptoEngine.encryptData(dataString, password.trim());
-      
       const blob = new Blob([encryptedPayload], { type: "application/json" });
       const anchor = document.createElement("a");
       anchor.href = URL.createObjectURL(blob);
@@ -1162,14 +1143,13 @@ async function exportJSON() {
       alert("❌ Encryption Failed: " + err.message);
     }
   } else {
-    // Unencrypted standard export fallback
     const blob = new Blob([dataString], { type: "application/json" });
     const anchor = document.createElement("a");
     anchor.href = URL.createObjectURL(blob);
     anchor.download = `crm_database_${dateStr}.json`;
     document.body.appendChild(anchor); 
     anchor.click(); 
-      anchor.remove();
+    anchor.remove();
 
     alert("📄 Standard unencrypted JSON backup created.");
   }
@@ -1186,21 +1166,15 @@ function importJSON(e) {
 
     try {
       let parsedData = null;
-
-      // Try reading content as JSON first
       let testJson = null;
-      try {
-        testJson = JSON.parse(rawContent);
-      } catch (err) {
-        // Not valid JSON format
-      }
 
-      // Check if file is an encrypted payload (has salt, iv, and ciphertext)
+      try { testJson = JSON.parse(rawContent); } catch (err) {}
+
       if (testJson && testJson.ciphertext && testJson.salt && testJson.iv) {
         const password = prompt("🔑 This file is password-protected. Enter master passphrase to decrypt:");
         if (!password) {
           alert("Import cancelled: Passphrase is required.");
-          e.target.value = ''; // Reset file input
+          e.target.value = '';
           return;
         }
 
@@ -1213,18 +1187,16 @@ function importJSON(e) {
           return;
         }
       } else if (testJson && testJson.customers) {
-        // Standard unencrypted JSON format
         parsedData = testJson;
       } else {
         throw new Error("Unrecognized CRM database file format.");
       }
 
-      // Validate & Load Decrypted State
       if (parsedData && Array.isArray(parsedData.customers)) {
         appState = parsedData;
         saveState();
         initApp();
-        alert("🎉 Database backup successfully decrypted and loaded!");
+        alert("🎉 Database backup successfully loaded!");
       } else {
         alert("⚠️ Import Error: Backup file is missing required customer database records.");
       }
@@ -1233,7 +1205,7 @@ function importJSON(e) {
       alert("❌ Import Failed: " + err.message);
     }
 
-    e.target.value = ''; // Reset file input selector
+    e.target.value = '';
   };
 
   reader.readAsText(file);
@@ -1241,9 +1213,11 @@ function importJSON(e) {
 
 function exportCSV() {
   if (appState.customers.length === 0) return alert("No customer records to export.");
-  const headers = ["Name", "Owner Title", "Phone", "Email", "Address", "Property Size", "Service", "Price", "Status"];
+  const headers = ["Name", "Owner Title", "Phone", "Email", "Street Address", "City", "State", "Zip", "Service", "Price", "Status"];
   const rows = appState.customers.map(c => [
-    `"${c.name}"`, `"${c.ownerTitle || ''}"`, `"${c.phone}"`, `"${c.email}"`, `"${c.address}"`, `"${c.size}"`, `"${c.service}"`, `"${c.price}"`, `"${c.status}"`
+    `"${c.name}"`, `"${c.ownerTitle || ''}"`, `"${c.phone}"`, `"${c.email}"`, 
+    `"${c.address}"`, `"${c.city || ''}"`, `"${c.state || ''}"`, `"${c.zip || ''}"`,
+    `"${c.service}"`, `"${c.price}"`, `"${c.status}"`
   ]);
   const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
   const anchor = document.createElement("a");
@@ -1251,4 +1225,3 @@ function exportCSV() {
   anchor.setAttribute("download", `customer_export_${new Date().toISOString().slice(0,10)}.csv`);
   document.body.appendChild(anchor); anchor.click(); anchor.remove();
 }
-
