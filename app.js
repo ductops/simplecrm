@@ -865,7 +865,16 @@ function deleteInvoice(invId) {
 
 function populateInvoiceCustomerDropdown() {
   const sel = document.getElementById('invCustomerId');
-  sel.innerHTML = appState.customers.map(c => `<option value="${c.id}">${c.name} (${getFullCustomerAddress(c)})</option>`).join('');
+  if (!sel) return; // Guard clause: Exit safely if element is missing
+
+  if (!appState.customers || appState.customers.length === 0) {
+    sel.innerHTML = `<option value="">No customer records available</option>`;
+    return;
+  }
+
+  sel.innerHTML = appState.customers
+    .map(c => `<option value="${c.id}">${c.name} (${getFullCustomerAddress(c)})</option>`)
+    .join('');
 }
 
 function openInvoiceModalForCurrentCustomer() {
