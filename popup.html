@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Service Business Manager Pro v1.9.0</title>
+  <style>
+    :root[data-preset="lawn"] { --primary: #2e7d32; --primary-hover: #1b5e20; --accent: #e8f5e9; --active-tab: #1b5e20; }
+    :root[data-preset="wash"] { --primary: #0277bd; --primary-hover: #01579b; --accent: #e1f5fe; --active-tab: #01579b; }
+    :root[data-preset="trade"] { --primary: #d97706; --primary-hover: #b45309; --accent: #fef3c7; --active-tab: #b45309; }
+
+    :root {
+      --bg: #f4f6f8; --card-bg: #ffffff; --text: #212529; --text-muted: #6c757d;
+      --border: #ced4da; --modal-overlay: rgba(0,0,0,0.5); --input-bg: #ffffff; --badge-bg: #e2e3e5;
+    }
+
+    [data-theme="dark"] {
+      --bg: #121212; --card-bg: #1e1e1e; --text: #e0e0e0; --text-muted: #a0a0a0;
+      --border: #333333; --modal-overlay: rgba(0,0,0,0.75); --input-bg: #2a2a2a; --badge-bg: #333333;
+    }
+
+    [data-theme="dark"][data-preset="lawn"] { --accent: #1b381e; }
+    [data-theme="dark"][data-preset="wash"] { --accent: #0d324d; }
+    [data-theme="dark"][data-preset="trade"] { --accent: #452403; }
+
+    html, body {
+      margin: 0; padding: 0; background-color: var(--bg); color: var(--text);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      width: 100vw; min-height: 100vh; overflow-y: auto; box-sizing: border-box; padding: 18px;
+    }
+
+    .header {
+      display: flex; justify-content: space-between; align-items: center;
+      background: var(--card-bg); padding: 12px 18px; border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08); margin-bottom: 14px; flex-wrap: wrap; gap: 10px;
+      border-top: 4px solid var(--primary);
+    }
+
+    .header-branding { display: flex; align-items: center; gap: 12px; }
+    .company-logo { max-height: 40px; max-width: 120px; object-fit: contain; border-radius: 4px; }
+    .header h1 { margin: 0; font-size: 1.25rem; color: var(--primary); display: flex; align-items: center; gap: 6px; }
+
+    .version-tag {
+      background: var(--primary); color: white; font-size: 0.65rem; padding: 2px 6px; border-radius: 10px; font-weight: normal;
+    }
+
+    .top-nav-btn {
+      background-color: var(--primary); color: white; border: 1px solid var(--primary);
+      padding: 7px 14px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.85rem;
+      transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 5px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .top-nav-btn:hover { background-color: var(--primary-hover); border-color: var(--primary-hover); transform: translateY(-1px); }
+    .top-nav-btn.active-nav-tab { background-color: var(--active-tab); border-color: #000; box-shadow: inset 0 2px 4px rgba(0,0,0,0.3); }
+
+    .btn {
+      background-color: var(--primary); color: white; border: none; padding: 6px 10px;
+      border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 0.8rem;
+      transition: background 0.2s; display: inline-flex; align-items: center; gap: 4px;
+    }
+
+    .btn:hover { background-color: var(--primary-hover); }
+    .btn-secondary { background-color: #6c757d; } .btn-secondary:hover { background-color: #5a6268; }
+    .btn-danger { background-color: #d32f2f; } .btn-danger:hover { background-color: #b71c1c; }
+    .btn-sm { padding: 3px 6px; font-size: 0.72rem; }
+
+    .container { display: grid; grid-template-columns: 290px 1fr; gap: 14px; transition: grid-template-columns 0.25s; }
+    .container.sidebar-collapsed { grid-template-columns: 38px 1fr; }
+
+    .sidebar {
+      background: var(--card-bg); padding: 12px; border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1); position: relative; overflow: hidden;
+    }
+
+    .container.sidebar-collapsed .sidebar { padding: 8px 4px; }
+    .container.sidebar-collapsed .sidebar-content { display: none; }
+
+    .sidebar-toggle-btn {
+      position: absolute; top: 8px; right: 8px; background: var(--accent);
+      color: var(--primary); border: 1px solid var(--primary); border-radius: 4px;
+      cursor: pointer; font-weight: bold; padding: 2px 5px; font-size: 0.75rem; z-index: 10;
+    }
+
+    .main-content { background: var(--card-bg); padding: 16px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .controls { margin-bottom: 8px; }
+
+    .search-bar, .form-control {
+      width: 100%; padding: 7px 9px; box-sizing: border-box; margin-bottom: 6px;
+      border: 1px solid var(--border); border-radius: 4px; background-color: var(--input-bg);
+      color: var(--text); font-size: 0.82rem;
+    }
+
+    .customer-list { list-style: none; padding: 0; margin: 0; max-height: 520px; overflow-y: auto; }
+    .customer-item { padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 6px; cursor: pointer; position: relative; }
+    .customer-item:hover, .customer-item.active { background-color: var(--accent); border-color: var(--primary); }
+    .customer-item h4 { margin: 0 0 2px 0; font-size: 0.88rem; display: flex; justify-content: space-between; align-items: center; }
+    .customer-item p { margin: 0; font-size: 0.75rem; color: var(--text-muted); }
+
+    .form-section { border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 10px; }
+    .form-section h3 { margin-top: 0; color: var(--primary); font-size: 0.95rem; margin-bottom: 6px; }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    .grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; }
+
+    .form-group { margin-bottom: 6px; }
+    .form-group label { display: block; font-size: 0.78rem; font-weight: bold; margin-bottom: 2px; }
+
+    .stat-card {
+      background: var(--accent); border: 1px solid var(--primary);
+      padding: 10px 14px; border-radius: 6px; text-align: center;
+    }
+    .stat-card h4 { margin: 0; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; }
+    .stat-card div { font-size: 1.3rem; font-weight: bold; color: var(--primary); margin-top: 2px; }
+
+    .widget-container-box { max-height: 140px; overflow-y: auto; transition: max-height 0.25s ease; }
+    .widget-container-box.auto-height-mode { max-height: 600px !important; }
+    .widget-container-box.collapsed-mode { display: none !important; }
+
+    .rolodex-bar {
+      background: var(--accent); border: 1px solid var(--primary);
+      padding: 10px; border-radius: 6px; margin-bottom: 12px;
+    }
+
+    .modal {
+      display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: var(--modal-overlay); z-index: 1000; justify-content: center; align-items: center;
+    }
+
+    .modal-content {
+      background: var(--card-bg); padding: 20px; border-radius: 8px;
+      width: 90%; max-width: 800px; max-height: 85vh; overflow-y: auto;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+
+    .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 6px; margin-bottom: 10px; }
+    .close-btn { background: none; border: none; font-size: 1.2rem; color: var(--text); cursor: pointer; }
+
+    table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 0.82rem; }
+    th, td { padding: 8px; text-align: left; border-bottom: 1px solid var(--border); }
+    th { background: var(--accent); color: var(--primary); }
+
+    .badge { padding: 2px 6px; border-radius: 10px; font-size: 0.68rem; font-weight: bold; background: var(--badge-bg); }
+    .badge-paid { background: #d4edda; color: #155724; }
+    .badge-unpaid { background: #f8d7da; color: #721c24; }
+    .badge-overdue { background: #fff3cd; color: #856404; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="header-branding">
+      <img id="displayCompanyLogo" class="company-logo" style="display:none;" alt="Company Logo">
+      <div>
+        <h1 id="displayCompanyName">🌱 Business Manager <span class="version-tag">v1.9.0 Pro</span></h1>
+        <small id="displayCompanyDetails" style="color:var(--text-muted);"></small>
+      </div>
+    </div>
+    <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+      <button class="top-nav-btn active-nav-tab" id="btnOverviewTab">📊 Overview</button>
+      <button class="top-nav-btn" id="btnCustomerTab">👤 Directory</button>
+      <button class="top-nav-btn" id="btnInvoicesTab">🧾 Invoices</button>
+      <button class="top-nav-btn" id="btnSettingsTab">⚙️ Settings</button>
+      <button class="btn btn-secondary" id="btnToggleTheme">🌓 Theme</button>
+    </div>
+  </div>
+
+  <div class="container" id="mainContainer">
+    <div class="sidebar">
+      <button type="button" class="sidebar-toggle-btn" id="btnToggleSidebar" title="Toggle Sidebar">◀</button>
+      <div class="sidebar-content">
+        <h3 style="margin-top:0; font-size:0.95rem;" id="sidebarHeadingTitle">Customer Directory</h3>
+        <div class="controls">
+          <input type="text" id="search" class="search-bar" placeholder="Search name, street, or city...">
+          <div class="grid-2" style="gap:4px;">
+            <select id="statusFilter" class="search-bar"></select>
+            <select id="routeGroupFilter" class="search-bar">
+              <option value="ALL">All Route Groups</option>
+            </select>
+          </div>
+          <div style="display:flex; gap:4px; margin-top:4px;">
+            <button type="button" class="btn btn-sm" id="btnRouteSelectedSidebar" style="flex:1;">🗺️ Route Selected</button>
+            <button type="button" class="btn btn-sm btn-danger" id="btnDeleteSelectedSidebar" style="flex:1;">🗑️ Delete Selected</button>
+          </div>
+        </div>
+        <ul id="customerList" class="customer-list"></ul>
+      </div>
+    </div>
+
+    <div class="main-content">
+      
+      <!-- TAB-AWARE COMMAND CENTER -->
+      <div id="northStarCommandCenter" style="border-bottom: 2px solid var(--primary); padding-bottom: 12px; margin-bottom: 14px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+          <h2 style="margin:0; color:var(--primary); font-size:1.15rem;">📊 Business Command Overview</h2>
+          <button type="button" class="btn btn-sm" id="btnNewCustomerFromDashboard">+ New Record</button>
+        </div>
+
+        <div class="grid-4" style="margin-bottom:10px;">
+          <div class="stat-card">
+            <h4>Unpaid Receivables</h4>
+            <div id="statUnpaidTotal">$0.00</div>
+          </div>
+          <div class="stat-card">
+            <h4>Overdue Invoices</h4>
+            <div id="statOverdueCount" style="color:#d32f2f;">0</div>
+          </div>
+          <div class="stat-card">
+            <h4>Active Contracts</h4>
+            <div id="statActiveContracts">0</div>
+          </div>
+          <div class="stat-card">
+            <h4>Pending Reminders</h4>
+            <div id="statPendingReminders" style="color:#d97706;">0</div>
+          </div>
+        </div>
+
+        <div class="form-section" style="background:var(--accent); border:1px solid var(--primary); border-radius:6px; padding:10px; margin-bottom:10px;">
+          <h3 style="margin-top:0; font-size:0.88rem; display:flex; justify-content:space-between; align-items:center;">
+            <span>🔔 Actionable Reminders & Alerts</span>
+            <div style="display:flex; gap:4px;">
+              <button type="button" class="btn btn-sm btn-secondary" id="btnToggleRemindersHeight">↕ Auto-Height</button>
+              <button type="button" class="btn btn-sm btn-secondary" id="btnToggleRemindersCollapse">▼ Minimize</button>
+            </div>
+          </h3>
+          <div id="remindersContainerBox" class="widget-container-box">
+            <table>
+              <thead>
+                <tr>
+                  <th>Client / Site</th>
+                  <th>Reminder Date</th>
+                  <th>Note / Action</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="youViewRemindersTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="form-section" style="margin-bottom:0; padding-bottom:0; border-bottom:none;">
+          <h3 style="margin-top:0; font-size:0.88rem; display:flex; justify-content:space-between; align-items:center;">
+            <span>🧾 Unpaid Invoices & Balance Sheet</span>
+            <div style="display:flex; gap:4px;">
+              <button type="button" class="btn btn-sm btn-secondary" id="btnToggleInvoicesHeight">↕ Auto-Height</button>
+              <button type="button" class="btn btn-sm btn-secondary" id="btnToggleInvoicesCollapse">▼ Minimize</button>
+            </div>
+          </h3>
+          <div id="invoicesContainerBox" class="widget-container-box">
+            <table>
+              <thead>
+                <tr>
+                  <th>Invoice #</th>
+                  <th>Customer</th>
+                  <th>Date</th>
+                  <th>Total</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="youViewUnpaidInvoicesTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 1: CUSTOMER / PROJECT EDITOR AREA -->
+      <div id="customerEditorSection" style="display:none;">
+        <div class="rolodex-bar">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+            <label style="font-size:0.82rem; font-weight:bold; color:var(--primary);" id="rolodexPickerLabel">📇 Record Rolodex Quick-Picker</label>
+            <button type="button" class="btn btn-sm" id="btnNewCustomer">+ New Record</button>
+          </div>
+          <div class="grid-2">
+            <select id="rolodexSelect" class="form-control" style="margin-bottom:0;"></select>
+            <input type="text" id="rolodexSearch" class="form-control" placeholder="Quick jump filter..." style="margin-bottom:0;">
+          </div>
+        </div>
+
+        <form id="customerForm" onsubmit="event.preventDefault();">
+          <div class="form-section">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <h3 id="formSectionTitleOne">1. Client & Project Details</h3>
+              <button type="button" class="btn btn-sm btn-secondary map-action-btn" id="btnOpenSingleMap" style="display:none;">📍 Map Directions</button>
+            </div>
+            <div class="grid-3" style="margin-top:6px;">
+              <div class="form-group">
+                <label id="labelCustName">Full Name</label>
+                <input type="text" id="custName" class="form-control" required>
+              </div>
+              <div class="form-group">
+                <label>Project / Jobsite Title</label>
+                <input type="text" id="custProjectName" class="form-control" placeholder="e.g. West Campus Turf Renovation">
+              </div>
+              <div class="form-group">
+                <label>Assigned Lead / Techs (Multi-Select)</label>
+                <select id="custAssignedEmployee" class="form-control" multiple size="3" style="height: auto;"></select>
+                <small style="color:var(--text-muted); font-size:0.7rem;">Hold Ctrl/Cmd to select multiple</small>
+              </div>
+            </div>
+            <div class="grid-3">
+              <div class="form-group">
+                <label>Owner / Resident Title</label>
+                <input type="text" id="custOwnerTitle" class="form-control" placeholder="e.g. The Doe Family">
+              </div>
+              <div class="form-group">
+                <label>Phone Number</label>
+                <input type="tel" id="custPhone" class="form-control">
+              </div>
+              <div class="form-group">
+                <label>Email Address</label>
+                <input type="email" id="custEmail" class="form-control">
+              </div>
+            </div>
+            <div class="grid-2">
+              <div class="form-group">
+                <label>Service Street Address</label>
+                <input type="text" id="custAddress" class="form-control" placeholder="1 Brookings Dr" required>
+              </div>
+              <div class="grid-3" style="gap:6px;">
+                <div class="form-group">
+                  <label>City</label>
+                  <input type="text" id="custCity" class="form-control" placeholder="St. Louis">
+                </div>
+                <div class="form-group">
+                  <label>State</label>
+                  <input type="text" id="custState" class="form-control" placeholder="MO">
+                </div>
+                <div class="form-group">
+                  <label>Zip Code</label>
+                  <input type="text" id="custZip" class="form-control" placeholder="63130">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h3>2. Site, Project & Cost Details</h3>
+            <div class="grid-3">
+              <div class="form-group">
+                <label id="labelScopeSize">Scope / Property Size</label>
+                <input type="text" id="propertySize" class="form-control">
+              </div>
+              <div class="form-group">
+                <label id="labelAccessCode">Gate / Entry Access</label>
+                <input type="text" id="gateCode" class="form-control">
+              </div>
+              <div class="form-group">
+                <label id="labelSiteTerrain">Site Type / Surface</label>
+                <input type="text" id="grassType" class="form-control">
+              </div>
+            </div>
+            <div class="grid-3">
+              <div class="form-group">
+                <label>Specialized Equipment Needs</label>
+                <input type="text" id="equipmentNeeds" class="form-control">
+              </div>
+              <div class="form-group">
+                <label>Internal Job Cost Estimate ($)</label>
+                <input type="number" step="0.01" id="internalCost" class="form-control" placeholder="0.00">
+              </div>
+              <div class="form-group">
+                <label>Follow-Up Reminder Date</label>
+                <input type="date" id="custReminderDate" class="form-control">
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Follow-Up Note / Alert Message</label>
+              <input type="text" id="custReminderNote" class="form-control" placeholder="e.g. Call for Fall Aeration quote">
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h3>3. Service, Route & Maintenance Contract</h3>
+            <div class="grid-4">
+              <div class="form-group">
+                <label>Primary Service</label>
+                <select id="primaryService" class="form-control"></select>
+              </div>
+              <div class="form-group">
+                <label>Recurring Frequency</label>
+                <select id="serviceFrequency" class="form-control">
+                  <option value="Weekly">Weekly</option>
+                  <option value="Bi-Weekly">Bi-Weekly</option>
+                  <option value="Monthly">Monthly</option>
+                  <option value="One-Time Job">One-Time Job</option>
+                  <option value="As Needed">As Needed</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Record Status</label>
+                <select id="customerStatus" class="form-control"></select>
+              </div>
+              <div class="form-group">
+                <label>Designated Route Group</label>
+                <select id="custRouteGroup" class="form-control"></select>
+              </div>
+            </div>
+            <div class="grid-2">
+              <div class="form-group">
+                <label>Rate Per Visit / Job ($)</label>
+                <input type="number" id="servicePrice" class="form-control" step="0.01" placeholder="0.00">
+              </div>
+              <div class="form-group">
+                <label>Preferred Payment Method</label>
+                <select id="paymentMethod" class="form-control">
+                  <option value="Credit Card">Credit Card</option>
+                  <option value="Check">Check</option>
+                  <option value="Cash">Cash</option>
+                  <option value="Bank Transfer (ACH)">Bank Transfer (ACH)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;">
+            <button type="button" class="btn" id="btnSaveCustomer">Save Record</button>
+            <button type="button" class="btn btn-danger" id="btnDeleteCustomer">Delete Record</button>
+            <button type="button" class="btn btn-secondary" id="btnPrintCard">📇 Record Card</button>
+            <button type="button" class="btn btn-secondary" id="btnPrintMailer">📬 Postcard Mailer</button>
+          </div>
+        </form>
+
+        <div class="form-section" style="margin-top:12px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <h3>4. Invoices & Billing History</h3>
+            <button type="button" class="btn btn-sm" id="btnCreateCustomerInvoice">+ Create Invoice</button>
+          </div>
+          <div style="overflow-x:auto;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Invoice #</th>
+                  <th>Date</th>
+                  <th>Description</th>
+                  <th>Total</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="customerInvoiceTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: INVOICES TAB -->
+      <div id="invoicesSection" style="display:none;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <h2 style="margin:0; color:var(--primary);">🧾 Global Invoice Directory</h2>
+          <button type="button" class="btn btn-sm" id="btnTabNewInvoice">+ Create New Invoice</button>
+        </div>
+
+        <div class="controls grid-2">
+          <input type="text" id="tabInvoiceSearch" class="form-control" placeholder="Search invoice # or customer...">
+          <select id="tabInvoiceStatusFilter" class="form-control">
+            <option value="ALL">All Statuses</option>
+            <option value="Paid">Paid</option>
+            <option value="Unpaid">Unpaid</option>
+            <option value="Overdue">Overdue</option>
+          </select>
+        </div>
+
+        <div style="overflow-x:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Invoice #</th>
+                <th>Customer</th>
+                <th>Date</th>
+                <th>Service Details</th>
+                <th>Total</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="tabInvoiceTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TAB 3: SETTINGS -->
+      <div id="settingsSection" style="display:none;">
+        <h2 style="margin-top:0; color:var(--primary);">⚙️ Business Profile, Sync & Application Preferences</h2>
+
+        <!-- MAPS & ROUTE SETTINGS -->
+        <div class="form-section" style="background:var(--accent); border:1px solid var(--primary); padding:10px; border-radius:6px;">
+          <h3>🗺️ Mapping & Route Preferences</h3>
+          <div class="grid-3">
+            <div class="form-group">
+              <label>HQ / Business Base Address</label>
+              <input type="text" id="settingHqAddress" class="form-control" placeholder="1 Fine Arts Dr, St. Louis, MO 63110">
+            </div>
+            <div class="form-group">
+              <label>Preferred Map Provider</label>
+              <select id="settingMapProvider" class="form-control">
+                <option value="google">Google Maps</option>
+                <option value="apple">Apple Maps</option>
+                <option value="bing">Bing Maps</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Display Quick Map Buttons (📍 Map)</label>
+              <select id="settingShowMapButtons" class="form-control">
+                <option value="false">Hidden (Default)</option>
+                <option value="true">Visible</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group" style="margin-top: 6px;">
+            <label>Google Maps API Key (Optional)</label>
+            <input type="password" id="settingMapsApiKey" class="form-control" placeholder="AIzaSy...">
+          </div>
+        </div>
+
+        <!-- TAXONOMIES & ROUTE GROUPS -->
+        <div class="form-section">
+          <h3>🏷️ Taxonomies, Route Groups & Directory Modes</h3>
+          <div class="grid-2">
+            <div class="form-group">
+              <label>Customer Status List (Comma Separated)</label>
+              <input type="text" id="settingStatuses" class="form-control">
+            </div>
+            <div class="form-group">
+              <label>Route Groups List (Comma Separated)</label>
+              <input type="text" id="settingRouteGroups" class="form-control">
+            </div>
+          </div>
+          <div class="grid-2">
+            <div class="form-group">
+              <label>Directory Workflow Mode</label>
+              <select id="settingDirectoryMode" class="form-control">
+                <option value="customer">Customer Directory (Default)</option>
+                <option value="project">Project / Jobsite Directory</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Backup Security Policy</label>
+              <select id="settingEnforceEncryption" class="form-control">
+                <option value="true">Enforce AES-256 Encryption (Default)</option>
+                <option value="false">Allow Unencrypted Plain JSON Exports</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- TEAM & ROSTER SECTION -->
+        <div class="form-section">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <h3 style="margin:0;">👷 Team & Crew Roster</h3>
+            <button type="button" class="btn btn-sm" id="btnAddEmployeeRow">+ Add Member</button>
+          </div>
+          <div style="overflow-x:auto;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Role / Responsibility</th>
+                  <th>Date Started</th>
+                  <th>Status</th>
+                  <th style="width:60px;">Action</th>
+                </tr>
+              </thead>
+              <tbody id="employeeTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- REMOTE SERVER SYNC ENGINE -->
+        <div class="form-section">
+          <h3>⚡ Remote Server Sync Engine</h3>
+          <div class="grid-2">
+            <div class="form-group">
+              <label>Database Storage Mode</label>
+              <select id="settingSyncMode" class="form-control">
+                <option value="local">🔒 Pure Offline (Local Storage)</option>
+                <option value="remote">🌐 Remote Server API Sync</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Server Endpoint URL</label>
+              <input type="text" id="settingSyncUrl" class="form-control" placeholder="https://my-server.com/api/crm-sync">
+            </div>
+          </div>
+          <button type="button" class="btn btn-sm btn-secondary" id="btnTestServerSync">⚡ Test Server Connection</button>
+        </div>
+
+        <div class="form-section">
+          <h3>Business Branding & Details</h3>
+          <div class="grid-3">
+            <div class="form-group">
+              <label>Industry Theme Preset</label>
+              <select id="settingPresetTheme" class="form-control">
+                <option value="lawn">🌱 Lawn Care & Landscaping</option>
+                <option value="wash">💦 Pressure Washing & Exterior</option>
+                <option value="trade">🔨 General Contracting & Trades</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Company Name</label>
+              <input type="text" id="settingCompName" class="form-control">
+            </div>
+            <div class="form-group">
+              <label>Company Contact Details</label>
+              <input type="text" id="settingCompDetails" class="form-control">
+            </div>
+          </div>
+
+          <div class="grid-3">
+            <div class="form-group">
+              <label>Default Payment Terms</label>
+              <input type="text" id="settingPaymentTerms" class="form-control" placeholder="Net 30. Payment due upon receipt.">
+            </div>
+            <div class="form-group">
+              <label>Invoice Footer / Thank You Message</label>
+              <input type="text" id="settingInvoiceFooterNote" class="form-control" placeholder="Thank you for your business!">
+            </div>
+            <div class="form-group">
+              <label>Upload Business Logo</label>
+              <input type="file" id="logoUpload" class="form-control" accept="image/*">
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h3>Tax Rules & 3rd-Party Payment URL</h3>
+          <div class="grid-3">
+            <div class="form-group">
+              <label>Default Sales Tax Rate (%)</label>
+              <input type="number" step="0.01" id="settingDefaultTaxRate" class="form-control">
+            </div>
+            <div class="form-group">
+              <label>Tax ID / Registration #</label>
+              <input type="text" id="settingTaxId" class="form-control">
+            </div>
+            <div class="form-group">
+              <label>Payment URL (Stripe/PayPal/Venmo)</label>
+              <input type="text" id="settingPaymentUrl" class="form-control" placeholder="https://paypal.me/yourbusiness">
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h3>📬 Postcard Mailer Templates</h3>
+          <div class="grid-2">
+            <div class="form-group">
+              <label>Mailer Headline</label>
+              <input type="text" id="settingMailerHeadline" class="form-control">
+            </div>
+            <div class="form-group">
+              <label>Promo Callout Box Text</label>
+              <input type="text" id="settingMailerCallout" class="form-control">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Services Offered List (Comma Separated)</label>
+            <input type="text" id="settingServices" class="form-control">
+          </div>
+        </div>
+
+        <!-- COLLAPSIBLE DATABASE LIBRARY & SYSTEM RESET -->
+        <div class="form-section">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h3 style="margin:0;">💾 Database Library & System Reset</h3>
+            <button type="button" class="btn btn-sm btn-secondary" id="btnToggleDatabaseActions">▼ Show Database & System Actions</button>
+          </div>
+          <div id="databaseActionsBox" class="widget-container-box collapsed-mode" style="margin-top:10px;">
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+              <button type="button" class="btn btn-sm" id="btnSaveLibraryState">💾 Save Database State</button>
+              <button type="button" class="btn btn-sm btn-secondary" id="btnExportJSON">Export JSON</button>
+              <button type="button" class="btn btn-sm btn-secondary" id="btnExportCSV">Export CSV</button>
+              <input type="file" id="importFile" style="display:none" accept=".json,.enc,.vault">
+              <button type="button" class="btn btn-sm btn-secondary" id="btnImportJSON">Import JSON</button>
+              <button type="button" class="btn btn-sm btn-danger" id="btnResetFactoryDefault">💣 Reset to Factory Default</button>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:8px; margin-top:14px;">
+          <button type="button" class="btn" id="btnSaveSettings">Save All Configuration Preferences</button>
+          <button type="button" class="btn btn-secondary" id="btnSaveOfflineSettings">💾 Save Offline (Backup)</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Create/Edit Invoice Modal -->
+  <div id="createInvoiceModal" class="modal">
+    <div class="modal-content" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3 id="invoiceFormTitle">Create / Edit Invoice</h3>
+        <button type="button" class="close-btn" id="btnCloseCreateInvoiceModal">&times;</button>
+      </div>
+      <form id="invoiceForm" onsubmit="event.preventDefault();">
+        <input type="hidden" id="invId">
+        
+        <div class="form-group">
+          <label>Select Customer</label>
+          <select id="invCustomerId" class="form-control" required></select>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label>Invoice Number</label>
+            <input type="text" id="invNum" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label>Invoice Date</label>
+            <input type="date" id="invDate" class="form-control" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Primary Service Preset</label>
+          <select id="invServicePreset" class="form-control"></select>
+        </div>
+
+        <div class="form-group">
+          <label>Service Description</label>
+          <input type="text" id="invDescription" class="form-control" required>
+        </div>
+        
+        <div class="grid-2">
+          <div class="form-group">
+            <label>Subtotal Amount ($)</label>
+            <input type="number" step="0.01" id="invAmount" class="form-control" placeholder="0.00" required>
+          </div>
+          <div class="form-group">
+            <label>Payment Status</label>
+            <select id="invStatus" class="form-control">
+              <option value="Unpaid">Unpaid</option>
+              <option value="Paid">Paid</option>
+              <option value="Overdue">Overdue</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="background:var(--accent); padding:8px; border-radius:6px; margin-top:6px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <label style="font-weight:bold; font-size:0.8rem;">
+              <input type="checkbox" id="invApplyTax"> Apply Sales Tax
+            </label>
+            <div style="display:flex; align-items:center; gap:5px; width:130px;">
+              <label style="font-size:0.75rem; font-weight:bold;">Rate (%):</label>
+              <input type="number" step="0.01" id="invTaxRate" class="form-control" style="margin-bottom:0;" placeholder="0.00">
+            </div>
+          </div>
+
+          <div class="tax-summary-box" style="margin-top:6px;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:3px;">
+              <span>Subtotal:</span>
+              <strong id="calcSubtotal">$0.00</strong>
+            </div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:3px;">
+              <span>Sales Tax (<span id="calcTaxRateLabel">0</span>%):</span>
+              <strong id="calcTaxAmount">$0.00</strong>
+            </div>
+            <hr style="margin:4px 0; border:none; border-top:1px solid var(--primary);">
+            <div style="display:flex; justify-content:space-between; font-size:0.9rem; color:var(--primary);">
+              <span>Grand Total:</span>
+              <strong id="calcGrandTotal">$0.00</strong>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:6px; margin-top:10px;">
+          <button type="button" class="btn btn-secondary" id="btnCancelInvoiceForm">Cancel</button>
+          <button type="button" class="btn" id="btnSubmitInvoiceForm">Save Invoice</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <iframe id="printFrame" style="display:none; position:absolute; width:0; height:0; border:none;"></iframe>
+
+  <script src="cryptoHelper.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

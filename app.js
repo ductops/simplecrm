@@ -1,0 +1,1460 @@
+const presetThemes = {
+  lawn: {
+    name: "🌱 Green Thumb Lawn Care",
+    services: ["Standard Mowing & Edging", "Full Lawn Maintenance Package", "Spring/Fall Lawn Cleanup", "Aeration & Overseeding", "Mulch Installation & Bed Prep", "Shrub & Tree Trimming"],
+    labels: { size: "Lawn Size / Acreage", code: "Gate / Access Clearance", terrain: "Turf / Grass Type" },
+    headline: "Ready for a Healthier, Greener Lawn?", callout: "Contact Us for a Free Estimate Today!"
+  },
+  wash: {
+    name: "💦 HydroClean Pressure Washing",
+    services: ["House Soft Wash", "Driveway & Sidewalk Wash", "Deck & Fence Restoration", "Gutter Cleaning & Flushing", "Commercial Surface Cleaning"],
+    labels: { size: "Surface Area (Sq Ft)", code: "Water Hookup Access", terrain: "Surface Material (Concrete/Vinyl/Wood)" },
+    headline: "Restore Your Curb Appeal Today!", callout: "Call Today for a Fast, Free Quote!"
+  },
+  trade: {
+    name: "🔨 Apex Contracting & Services",
+    services: ["General Repair / Handyman", "Drywall & Painting", "Deck & Framing Construction", "Tile & Flooring Installation", "Rough-in Service Call"],
+    labels: { size: "Project Dimensions / Sq Ft", code: "Lockbox / Gate Code", terrain: "Jobsite Environment / Specs" },
+    headline: "Quality Craftsmanship Guaranteed", callout: "Schedule Your Project Consultation Today!"
+  }
+};
+
+let appState = {
+  presetTheme: 'lawn', theme: 'light', sidebarCollapsed: false, autoloadDefault: true,
+  defaultTaxRate: 7.00, taxId: "", paymentTerms: "Payment due upon receipt.", paymentUrl: "",
+  invoiceFooterNote: "Thank you for your business!",
+  hqAddress: "", mapProvider: "google", mapsApiKey: "", showMapButtons: false,
+  directoryMode: "customer", enforceEncryption: true,
+  syncMode: 'local', syncUrl: '',
+  mailerHeadline: presetThemes.lawn.headline, mailerCallout: presetThemes.lawn.callout,
+  company: { name: presetThemes.lawn.name, details: "(555) 234-5678 | info@mybusiness.com", logo: "" },
+  services: [...presetThemes.lawn.services],
+  statuses: ["Active Contract", "One-Time Job", "Lead/Quote", "Inactive"],
+  routeGroups: ["North Loop", "South Suburbs", "Commercial Core", "Weekend Callouts"],
+  employees: [
+    { id: 201, name: "Marcus Vance", role: "Crew Lead", started: "2024-03-15", status: "Active" },
+    { id: 202, name: "Sarah Lin", role: "Irrigation Specialist", started: "2025-05-01", status: "Active" }
+  ],
+  customers: [], invoices: [], selectedCustomerId: null
+};
+
+document.addEventListener("DOMContentLoaded", () => {
+  initApp();
+  attachEventListeners();
+});
+
+function initApp() {
+  const stored = localStorage.getItem('multiTradeCrmData');
+  if (stored) {
+    try { 
+      const parsed = JSON.parse(stored);
+      appState = { ...appState, ...parsed };
+      if (!Array.isArray(appState.statuses) || appState.statuses.length === 0) {
+        appState.statuses = ["Active Contract", "One-Time Job", "Lead/Quote", "Inactive"];
+      }
+      if (!Array.isArray(appState.routeGroups) || appState.routeGroups.length === 0) {
+        appState.routeGroups = ["North Loop", "South Suburbs", "Commercial Core", "Weekend Callouts"];
+      }
+      if (!Array.isArray(appState.employees)) {
+        appState.employees = [];
+      }
+    } catch (e) { 
+      console.error(e); 
+    }
+  } else if (appState.autoloadDefault) {
+    loadSampleData(); 
+    saveState();
+  }
+
+  applyPresetTheme(appState.presetTheme || 'lawn');
+  applyTheme(appState.theme || 'light');
+  applySidebarState();
+  updateBrandingUI();
+  populateTaxonomyDropdowns();
+  populateServicesDropdown();
+  renderEmployeeTable();
+  renderCustomerList();
+  populateRolodexDropdown();
+
+  if (appState.customers.length > 0) loadCustomerIntoForm(appState.customers[0].id);
+
+  renderYouViewOverview();
+  showTab('overview');
+}
+
+function loadSampleData() {
+  appState.hqAddress = "1 Fine Arts Dr, St. Louis, MO 63110";
+  
+  appState.customers = [
+    {
+      id: 101, name: "John Doe", projectName: "Forest Park Ground Maintenance", ownerTitle: "The Doe Family", 
+      phone: "(314) 555-0192", email: "johndoe@example.com", 
+      address: "1 Brookings Dr", city: "St. Louis", state: "MO", zip: "63130",
+      size: "5,500 sq ft", gate: "36-inch side gate", grass: "Fescue / Flat yard", equipment: "Walk Mower, Edger",
+      internalCost: "22.50", reminderDate: "2026-10-25", reminderNote: "Call for Fall Aeration quote",
+      service: appState.services[0] || "Standard Mowing & Edging", frequency: "Weekly", 
+      status: "Active Contract", routeGroup: "North Loop", assignedTechs: [201],
+      price: "45.00", payment: "Credit Card"
+    },
+    {
+      id: 102, name: "Jane Doe", projectName: "Botanical Entrance Cleanup", ownerTitle: "Doe Commercial", 
+      phone: "(314) 555-1212", email: "janedoe@example.com", 
+      address: "4344 Shaw Blvd", city: "St. Louis", state: "MO", zip: "63110",
+      size: "12,000 sq ft", gate: "Double gate access", grass: "Bermuda", equipment: "Ride Mower",
+      internalCost: "40.00", reminderDate: "2026-10-30", reminderNote: "Check turf near greenhouse entry.",
+      service: appState.services[1] || "Full Lawn Maintenance Package", frequency: "Bi-Weekly", 
+      status: "Active Contract", routeGroup: "South Suburbs", assignedTechs: [201, 202],
+      price: "85.00", payment: "Check"
+    }
+  ];
+
+  appState.invoices = [
+    {
+      id: 1001, customerId: 101, number: "INV-6382", date: "2026-10-01", description: "Standard Mowing & Edging",
+      amount: "45.00", applyTax: true, taxRate: 7.00, status: "Unpaid"
+    }
+  ];
+}
+
+function saveState() { 
+  localStorage.setItem('multiTradeCrmData', JSON.stringify(appState)); 
+}
+
+function getFullCustomerAddress(c) {
+  if (!c) return '';
+  const parts = [c.address, c.city, c.state, c.zip].filter(p => p && p.trim().length > 0);
+  return parts.join(', ');
+}
+
+function getAssignedTechNames(assignedIds) {
+  if (!assignedIds || !Array.isArray(assignedIds) || assignedIds.length === 0) return 'Unassigned';
+  const names = assignedIds.map(id => {
+    const emp = appState.employees.find(e => e.id === id);
+    return emp ? emp.name : null;
+  }).filter(Boolean);
+  return names.length > 0 ? names.join(', ') : 'Unassigned';
+}
+
+function attachEventListeners() {
+  document.getElementById('btnOverviewTab').addEventListener('click', () => showTab('overview'));
+  document.getElementById('btnCustomerTab').addEventListener('click', () => showTab('customer'));
+  document.getElementById('btnInvoicesTab').addEventListener('click', () => showTab('invoices'));
+  document.getElementById('btnSettingsTab').addEventListener('click', () => showTab('settings'));
+
+  document.getElementById('btnNewCustomerFromDashboard').addEventListener('click', () => { showTab('customer'); createNewCustomer(); });
+  document.getElementById('btnNewCustomer').addEventListener('click', () => { showTab('customer'); createNewCustomer(); });
+  document.getElementById('btnTabNewInvoice').addEventListener('click', () => openInvoiceCreateModal());
+
+  document.getElementById('btnToggleRemindersHeight').addEventListener('click', () => toggleWidgetHeight('remindersContainerBox', 'btnToggleRemindersHeight'));
+  document.getElementById('btnToggleRemindersCollapse').addEventListener('click', () => toggleWidgetCollapse('remindersContainerBox', 'btnToggleRemindersCollapse'));
+  document.getElementById('btnToggleInvoicesHeight').addEventListener('click', () => toggleWidgetHeight('invoicesContainerBox', 'btnToggleInvoicesHeight'));
+  document.getElementById('btnToggleInvoicesCollapse').addEventListener('click', () => toggleWidgetCollapse('invoicesContainerBox', 'btnToggleInvoicesCollapse'));
+  
+  document.getElementById('btnToggleDatabaseActions').addEventListener('click', () => toggleWidgetCollapse('databaseActionsBox', 'btnToggleDatabaseActions'));
+
+  document.getElementById('btnToggleSidebar').addEventListener('click', toggleSidebar);
+  document.getElementById('btnToggleTheme').addEventListener('click', toggleTheme);
+  
+  document.getElementById('btnAddEmployeeRow').addEventListener('click', addEmployeeRow);
+  document.getElementById('btnSaveSettings').addEventListener('click', saveSettings);
+  document.getElementById('btnSaveOfflineSettings').addEventListener('click', exportJSON);
+  document.getElementById('btnTestServerSync').addEventListener('click', testServerSync);
+  document.getElementById('settingPresetTheme').addEventListener('change', onPresetThemeChange);
+  document.getElementById('logoUpload').addEventListener('change', handleLogoUpload);
+
+  document.getElementById('btnOpenSingleMap').addEventListener('click', () => {
+    const cust = appState.customers.find(c => c.id === appState.selectedCustomerId);
+    if (cust) openCustomerMap(getFullCustomerAddress(cust));
+  });
+  document.getElementById('btnRouteSelectedSidebar').addEventListener('click', routeSelectedCustomers);
+  document.getElementById('btnDeleteSelectedSidebar').addEventListener('click', deleteSelectedCustomers);
+
+  document.getElementById('btnSaveLibraryState').addEventListener('click', () => { saveState(); alert('Database workbook state saved!'); });
+  document.getElementById('btnExportJSON').addEventListener('click', exportJSON);
+  document.getElementById('btnExportCSV').addEventListener('click', exportCSV);
+  document.getElementById('btnImportJSON').addEventListener('click', () => document.getElementById('importFile').click());
+  document.getElementById('importFile').addEventListener('change', importJSON);
+  document.getElementById('btnResetFactoryDefault').addEventListener('click', resetToFactoryDefault);
+
+  document.getElementById('search').addEventListener('input', renderCustomerList);
+  document.getElementById('statusFilter').addEventListener('change', renderCustomerList);
+  document.getElementById('routeGroupFilter').addEventListener('change', renderCustomerList);
+
+  document.getElementById('tabInvoiceSearch').addEventListener('input', renderTabInvoiceTable);
+  document.getElementById('tabInvoiceStatusFilter').addEventListener('change', renderTabInvoiceTable);
+
+  document.getElementById('rolodexSelect').addEventListener('change', (e) => {
+    if (e.target.value) loadCustomerIntoForm(parseInt(e.target.value));
+  });
+  document.getElementById('rolodexSearch').addEventListener('input', populateRolodexDropdown);
+
+  document.getElementById('btnSaveCustomer').addEventListener('click', saveCurrentCustomer);
+  document.getElementById('btnDeleteCustomer').addEventListener('click', deleteCurrentCustomer);
+  document.getElementById('btnPrintCard').addEventListener('click', () => printCustomerDocument('card'));
+  document.getElementById('btnPrintMailer').addEventListener('click', () => printCustomerDocument('mailer'));
+
+  document.getElementById('btnCreateCustomerInvoice').addEventListener('click', openInvoiceModalForCurrentCustomer);
+  document.getElementById('btnCloseCreateInvoiceModal').addEventListener('click', () => closeModal('createInvoiceModal'));
+  document.getElementById('btnCancelInvoiceForm').addEventListener('click', () => closeModal('createInvoiceModal'));
+  
+  document.getElementById('invCustomerId').addEventListener('change', autoFillInvoiceCustomerData);
+  document.getElementById('invServicePreset').addEventListener('change', onInvoiceServicePresetChange);
+  document.getElementById('invAmount').addEventListener('input', updateInvoiceTaxCalculations);
+  document.getElementById('invApplyTax').addEventListener('change', updateInvoiceTaxCalculations);
+  document.getElementById('invTaxRate').addEventListener('input', updateInvoiceTaxCalculations);
+
+  document.getElementById('btnSubmitInvoiceForm').addEventListener('click', (e) => { e.preventDefault(); saveInvoice(); });
+}
+
+function showTab(tabName) {
+  document.querySelectorAll('.top-nav-btn').forEach(btn => btn.classList.remove('active-nav-tab'));
+  
+  if (tabName === 'overview') document.getElementById('btnOverviewTab').classList.add('active-nav-tab');
+  if (tabName === 'customer') document.getElementById('btnCustomerTab').classList.add('active-nav-tab');
+  if (tabName === 'invoices') document.getElementById('btnInvoicesTab').classList.add('active-nav-tab');
+  if (tabName === 'settings') document.getElementById('btnSettingsTab').classList.add('active-nav-tab');
+
+  document.getElementById('customerEditorSection').style.display = tabName === 'customer' ? 'block' : 'none';
+  document.getElementById('invoicesSection').style.display = tabName === 'invoices' ? 'block' : 'none';
+  document.getElementById('settingsSection').style.display = tabName === 'settings' ? 'block' : 'none';
+
+  const commandCenter = document.getElementById('northStarCommandCenter');
+  if (commandCenter) {
+    commandCenter.style.display = tabName === 'overview' ? 'block' : 'none';
+  }
+
+  if (tabName === 'invoices') renderTabInvoiceTable();
+  if (tabName === 'settings') loadSettingsForm();
+
+  renderYouViewOverview();
+}
+
+function toggleWidgetHeight(boxId, btnId) {
+  const box = document.getElementById(boxId);
+  const btn = document.getElementById(btnId);
+  if (!box || !btn) return;
+  box.classList.toggle('auto-height-mode');
+  btn.textContent = box.classList.contains('auto-height-mode') ? '↕ Compact' : '↕ Auto-Height';
+}
+
+function toggleWidgetCollapse(boxId, btnId) {
+  const box = document.getElementById(boxId);
+  const btn = document.getElementById(btnId);
+  if (!box || !btn) return;
+  box.classList.toggle('collapsed-mode');
+  btn.textContent = box.classList.contains('collapsed-mode') ? '▲ Show' : '▼ Minimize';
+}
+
+function populateTaxonomyDropdowns() {
+  const filterSel = document.getElementById('statusFilter');
+  const formSel = document.getElementById('customerStatus');
+  if (filterSel && formSel) {
+    const curFilter = filterSel.value || 'ALL';
+    filterSel.innerHTML = '<option value="ALL">All Statuses</option>';
+    formSel.innerHTML = '';
+    (appState.statuses || []).forEach(st => {
+      filterSel.innerHTML += `<option value="${st}">${st}</option>`;
+      formSel.innerHTML += `<option value="${st}">${st}</option>`;
+    });
+    filterSel.value = curFilter;
+  }
+
+  const groupFilter = document.getElementById('routeGroupFilter');
+  const formGroup = document.getElementById('custRouteGroup');
+  if (groupFilter && formGroup) {
+    const curGroup = groupFilter.value || 'ALL';
+    groupFilter.innerHTML = '<option value="ALL">All Route Groups</option>';
+    formGroup.innerHTML = '<option value="">-- No Route Group --</option>';
+    (appState.routeGroups || []).forEach(rg => {
+      groupFilter.innerHTML += `<option value="${rg}">${rg}</option>`;
+      formGroup.innerHTML += `<option value="${rg}">${rg}</option>`;
+    });
+    groupFilter.value = curGroup;
+  }
+
+  const empSel = document.getElementById('custAssignedEmployee');
+  if (empSel) {
+    const curSelected = Array.from(empSel.selectedOptions).map(o => parseInt(o.value));
+    empSel.innerHTML = '';
+    (appState.employees || []).filter(e => e.status === 'Active').forEach(e => {
+      const opt = document.createElement('option');
+      opt.value = e.id;
+      opt.textContent = `${e.name} (${e.role})`;
+      if (curSelected.includes(e.id)) opt.selected = true;
+      empSel.appendChild(opt);
+    });
+  }
+
+  const isProjectMode = appState.directoryMode === 'project';
+  const sidebarTitle = document.getElementById('sidebarHeadingTitle');
+  if (sidebarTitle) sidebarTitle.textContent = isProjectMode ? 'Project Directory' : 'Customer Directory';
+  
+  const navCustBtn = document.getElementById('btnCustomerTab');
+  if (navCustBtn) navCustBtn.textContent = isProjectMode ? '📁 Projects' : '👤 Customers';
+}
+
+function renderEmployeeTable() {
+  const tbody = document.getElementById('employeeTableBody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  if (!appState.employees || appState.employees.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">No team members added yet.</td></tr>`;
+    return;
+  }
+
+  appState.employees.forEach((emp, idx) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input type="text" class="form-control emp-name" value="${emp.name}" style="margin:0;"></td>
+      <td><input type="text" class="form-control emp-role" value="${emp.role}" style="margin:0;"></td>
+      <td><input type="date" class="form-control emp-started" value="${emp.started}" style="margin:0;"></td>
+      <td>
+        <select class="form-control emp-status" style="margin:0;">
+          <option value="Active" ${emp.status === 'Active' ? 'selected' : ''}>Active</option>
+          <option value="Inactive" ${emp.status === 'Inactive' ? 'selected' : ''}>Inactive</option>
+        </select>
+      </td>
+      <td><button type="button" class="btn btn-sm btn-danger btn-del-emp">🗑️</button></td>
+    `;
+
+    tr.querySelector('.emp-name').addEventListener('input', (e) => { emp.name = e.target.value; saveState(); populateTaxonomyDropdowns(); });
+    tr.querySelector('.emp-role').addEventListener('input', (e) => { emp.role = e.target.value; saveState(); });
+    tr.querySelector('.emp-started').addEventListener('input', (e) => { emp.started = e.target.value; saveState(); });
+    tr.querySelector('.emp-status').addEventListener('change', (e) => { emp.status = e.target.value; saveState(); populateTaxonomyDropdowns(); });
+    tr.querySelector('.btn-del-emp').addEventListener('click', () => {
+      appState.employees.splice(idx, 1);
+      saveState();
+      renderEmployeeTable();
+      populateTaxonomyDropdowns();
+    });
+
+    tbody.appendChild(tr);
+  });
+}
+
+function addEmployeeRow() {
+  const newEmp = {
+    id: Date.now(),
+    name: "New Team Member",
+    role: "Technician",
+    started: new Date().toISOString().slice(0, 10),
+    status: "Active"
+  };
+  appState.employees.push(newEmp);
+  saveState();
+  renderEmployeeTable();
+  populateTaxonomyDropdowns();
+}
+
+function populateRolodexDropdown() {
+  const sel = document.getElementById('rolodexSelect');
+  const search = document.getElementById('rolodexSearch').value.toLowerCase();
+  if (!sel) return;
+  sel.innerHTML = '';
+
+  const isProjectMode = appState.directoryMode === 'project';
+  const filtered = appState.customers.filter(c => {
+    const fullAddr = getFullCustomerAddress(c).toLowerCase();
+    const projName = (c.projectName || '').toLowerCase();
+    return c.name.toLowerCase().includes(search) || fullAddr.includes(search) || projName.includes(search);
+  });
+
+  if (filtered.length === 0) {
+    sel.innerHTML = `<option value="">No matching records</option>`;
+    return;
+  }
+
+  filtered.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.id;
+    const title = isProjectMode && c.projectName ? `${c.projectName} (${c.name})` : `${c.name} — ${getFullCustomerAddress(c)}`;
+    opt.textContent = `📇 ${title} [${c.service}]`;
+    if (c.id === appState.selectedCustomerId) opt.selected = true;
+    sel.appendChild(opt);
+  });
+}
+
+function renderYouViewOverview() {
+  let totalUnpaid = 0;
+  let overdueCount = 0;
+  
+  appState.invoices.forEach(inv => {
+    if (inv.status === 'Unpaid' || inv.status === 'Overdue') {
+      const { grandTotal } = calculateInvoiceTotals(inv);
+      totalUnpaid += grandTotal;
+      if (inv.status === 'Overdue') overdueCount++;
+    }
+  });
+
+  const activeContractsCount = appState.customers.filter(c => c.status === 'Active Contract').length;
+  const pendingRemindersCount = appState.customers.filter(c => c.reminderDate && c.reminderNote).length;
+
+  document.getElementById('statUnpaidTotal').textContent = `$${totalUnpaid.toFixed(2)}`;
+  document.getElementById('statOverdueCount').textContent = overdueCount;
+  document.getElementById('statActiveContracts').textContent = activeContractsCount;
+  document.getElementById('statPendingReminders').textContent = pendingRemindersCount;
+
+  const remTbody = document.getElementById('youViewRemindersTableBody');
+  const reminderCusts = appState.customers.filter(c => c.reminderDate && c.reminderNote);
+
+  if (reminderCusts.length === 0) {
+    remTbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--text-muted);">No pending follow-up reminders.</td></tr>`;
+  } else {
+    remTbody.innerHTML = '';
+    reminderCusts.forEach(c => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><strong>${c.name}</strong> ${c.projectName ? `<br><small style="color:var(--primary);">${c.projectName}</small>` : ''}</td>
+        <td><span class="badge badge-overdue">${c.reminderDate}</span></td>
+        <td>${c.reminderNote}</td>
+        <td>
+          <div style="display:flex; gap:4px; align-items:center;">
+            <select class="form-control snooze-select btn-sm" style="width:110px; margin:0;" data-id="${c.id}">
+              <option value="">-- Snooze --</option>
+              <option value="7">Snooze +1 Wk</option>
+              <option value="14">Snooze +2 Wks</option>
+              <option value="clear">Mark Complete</option>
+            </select>
+            <button type="button" class="btn btn-sm btn-secondary btn-edit-cust-rem">✏️ Edit</button>
+          </div>
+        </td>
+      `;
+
+      tr.querySelector('.snooze-select').addEventListener('change', (e) => handleSnoozeReminder(c.id, e.target.value));
+      tr.querySelector('.btn-edit-cust-rem').addEventListener('click', () => {
+        showTab('customer');
+        loadCustomerIntoForm(c.id);
+      });
+
+      remTbody.appendChild(tr);
+    });
+  }
+
+  const invTbody = document.getElementById('youViewUnpaidInvoicesTableBody');
+  const unpaidInvs = appState.invoices.filter(i => i.status === 'Unpaid' || i.status === 'Overdue');
+
+  if (unpaidInvs.length === 0) {
+    invTbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">No unpaid invoices! All clear! 🎉</td></tr>`;
+  } else {
+    invTbody.innerHTML = '';
+    unpaidInvs.forEach(inv => {
+      const cust = appState.customers.find(c => c.id === inv.customerId);
+      const { grandTotal } = calculateInvoiceTotals(inv);
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><strong>${inv.number}</strong></td>
+        <td>${cust ? cust.name : 'Unknown Customer'}</td>
+        <td>${inv.date}</td>
+        <td>$${grandTotal.toFixed(2)}</td>
+        <td><span class="badge badge-${inv.status.toLowerCase()}">${inv.status}</span></td>
+        <td>
+          <button type="button" class="btn btn-sm btn-secondary btn-copy-pay">🔗 Pay Link</button>
+          <button type="button" class="btn btn-sm btn-secondary btn-edit-overview-inv">✏️ Edit</button>
+        </td>
+      `;
+      tr.querySelector('.btn-copy-pay').addEventListener('click', () => copyPaymentLink(inv.id));
+      tr.querySelector('.btn-edit-overview-inv').addEventListener('click', () => openInvoiceCreateModal(inv.id));
+      invTbody.appendChild(tr);
+    });
+  }
+}
+
+function handleSnoozeReminder(custIdx, val) {
+  const c = appState.customers.find(cust => cust.id === custIdx);
+  if (!c) return;
+
+  if (val === 'clear') {
+    c.reminderDate = '';
+    c.reminderNote = '';
+  } else if (val) {
+    const days = parseInt(val);
+    const currDate = new Date(c.reminderDate || Date.now());
+    currDate.setDate(currDate.getDate() + days);
+    c.reminderDate = currDate.toISOString().slice(0, 10);
+  }
+
+  saveState();
+  renderYouViewOverview();
+  if (appState.selectedCustomerId === custIdx) loadCustomerIntoForm(custIdx);
+}
+
+function renderTabInvoiceTable() {
+  const tbody = document.getElementById('tabInvoiceTableBody');
+  const search = document.getElementById('tabInvoiceSearch').value.toLowerCase();
+  const statusFilter = document.getElementById('tabInvoiceStatusFilter').value;
+
+  const filtered = appState.invoices.filter(inv => {
+    const cust = appState.customers.find(c => c.id === inv.customerId);
+    const custName = cust ? cust.name.toLowerCase() : '';
+    const matchesSearch = inv.number.toLowerCase().includes(search) || custName.includes(search) || inv.description.toLowerCase().includes(search);
+    const matchesStatus = statusFilter === 'ALL' || inv.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">No invoices found.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = '';
+  filtered.forEach(inv => {
+    const cust = appState.customers.find(c => c.id === inv.customerId);
+    const { grandTotal } = calculateInvoiceTotals(inv);
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><strong>${inv.number}</strong></td>
+      <td>${cust ? cust.name : 'Unknown Customer'}</td>
+      <td>${inv.date}</td>
+      <td>${inv.description}</td>
+      <td>$${grandTotal.toFixed(2)}</td>
+      <td><span class="badge badge-${inv.status.toLowerCase()}">${inv.status}</span></td>
+      <td>
+        <button type="button" class="btn btn-sm btn-secondary btn-print-inv">🖨️ Print</button>
+        <button type="button" class="btn btn-sm btn-secondary btn-dup-inv">👯 Duplicate</button>
+        <button type="button" class="btn btn-sm btn-edit-inv">✏️ Edit</button>
+        <button type="button" class="btn btn-sm btn-secondary btn-copy-pay">🔗 Pay Link</button>
+        <button type="button" class="btn btn-sm btn-danger btn-del-inv">🗑️ Delete</button>
+      </td>
+    `;
+    tr.querySelector('.btn-print-inv').addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); printSingleInvoice(inv.id); });
+    tr.querySelector('.btn-dup-inv').addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); duplicateInvoice(inv.id); });
+    tr.querySelector('.btn-edit-inv').addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); openInvoiceCreateModal(inv.id); });
+    tr.querySelector('.btn-copy-pay').addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); copyPaymentLink(inv.id); });
+    tr.querySelector('.btn-del-inv').addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); deleteInvoice(inv.id); });
+    tbody.appendChild(tr);
+  });
+}
+
+function toggleSidebar() {
+  appState.sidebarCollapsed = !appState.sidebarCollapsed;
+  applySidebarState(); 
+  saveState();
+}
+
+function applySidebarState() {
+  const container = document.getElementById('mainContainer');
+  const btn = document.getElementById('btnToggleSidebar');
+  if (appState.sidebarCollapsed) { container.classList.add('sidebar-collapsed'); btn.textContent = '▶'; }
+  else { container.classList.remove('sidebar-collapsed'); btn.textContent = '◀'; }
+}
+
+function applyPresetTheme(presetKey) {
+  appState.presetTheme = presetKey;
+  document.documentElement.setAttribute('data-preset', presetKey);
+  const p = presetThemes[presetKey] || presetThemes.lawn;
+  document.getElementById('labelScopeSize').textContent = p.labels.size;
+  document.getElementById('labelAccessCode').textContent = p.labels.code;
+  document.getElementById('labelSiteTerrain').textContent = p.labels.terrain;
+}
+
+function onPresetThemeChange(e) {
+  const presetKey = e.target.value;
+  applyPresetTheme(presetKey);
+  const p = presetThemes[presetKey];
+  document.getElementById('settingCompName').value = p.name;
+  document.getElementById('settingMailerHeadline').value = p.headline;
+  document.getElementById('settingMailerCallout').value = p.callout;
+  document.getElementById('settingServices').value = p.services.join(', ');
+}
+
+function toggleTheme() {
+  appState.theme = appState.theme === 'dark' ? 'light' : 'dark';
+  applyTheme(appState.theme); 
+  saveState();
+}
+
+function applyTheme(theme) { 
+  document.documentElement.setAttribute('data-theme', theme); 
+}
+
+function loadSettingsForm() {
+  document.getElementById('settingHqAddress').value = appState.hqAddress || '';
+  document.getElementById('settingMapProvider').value = appState.mapProvider || 'google';
+  document.getElementById('settingMapsApiKey').value = appState.mapsApiKey || '';
+  document.getElementById('settingShowMapButtons').value = appState.showMapButtons ? 'true' : 'false';
+
+  document.getElementById('settingStatuses').value = (appState.statuses || []).join(', ');
+  document.getElementById('settingRouteGroups').value = (appState.routeGroups || []).join(', ');
+  document.getElementById('settingDirectoryMode').value = appState.directoryMode || 'customer';
+  document.getElementById('settingEnforceEncryption').value = appState.enforceEncryption !== false ? 'true' : 'false';
+
+  document.getElementById('settingSyncMode').value = appState.syncMode || 'local';
+  document.getElementById('settingSyncUrl').value = appState.syncUrl || '';
+  document.getElementById('settingPresetTheme').value = appState.presetTheme || 'lawn';
+  document.getElementById('settingCompName').value = appState.company.name || '';
+  document.getElementById('settingCompDetails').value = appState.company.details || '';
+  document.getElementById('settingDefaultTaxRate').value = appState.defaultTaxRate || 0;
+  document.getElementById('settingTaxId').value = appState.taxId || '';
+  document.getElementById('settingPaymentUrl').value = appState.paymentUrl || '';
+  document.getElementById('settingPaymentTerms').value = appState.paymentTerms || '';
+  document.getElementById('settingInvoiceFooterNote').value = appState.invoiceFooterNote || 'Thank you for your business!';
+  document.getElementById('settingMailerHeadline').value = appState.mailerHeadline || presetThemes.lawn.headline;
+  document.getElementById('settingMailerCallout').value = appState.mailerCallout || presetThemes.lawn.callout;
+  document.getElementById('settingServices').value = (appState.services || []).join(', ');
+
+  renderEmployeeTable();
+}
+
+function handleLogoUpload(e) {
+  const file = e.target.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = function(evt) { appState.company.logo = evt.target.result; updateBrandingUI(); saveState(); };
+    reader.readAsDataURL(file);
+  }
+}
+
+function saveSettings() {
+  applyPresetTheme(document.getElementById('settingPresetTheme').value);
+  
+  appState.hqAddress = document.getElementById('settingHqAddress').value;
+  appState.mapProvider = document.getElementById('settingMapProvider').value;
+  appState.mapsApiKey = document.getElementById('settingMapsApiKey').value;
+  appState.showMapButtons = document.getElementById('settingShowMapButtons').value === 'true';
+
+  appState.statuses = document.getElementById('settingStatuses').value.split(',').map(s => s.trim()).filter(Boolean);
+  appState.routeGroups = document.getElementById('settingRouteGroups').value.split(',').map(s => s.trim()).filter(Boolean);
+  appState.directoryMode = document.getElementById('settingDirectoryMode').value;
+  appState.enforceEncryption = document.getElementById('settingEnforceEncryption').value === 'true';
+
+  appState.syncMode = document.getElementById('settingSyncMode').value;
+  appState.syncUrl = document.getElementById('settingSyncUrl').value;
+  appState.company.name = document.getElementById('settingCompName').value;
+  appState.company.details = document.getElementById('settingCompDetails').value;
+  appState.defaultTaxRate = parseFloat(document.getElementById('settingDefaultTaxRate').value) || 0;
+  appState.taxId = document.getElementById('settingTaxId').value;
+  appState.paymentUrl = document.getElementById('settingPaymentUrl').value;
+  appState.paymentTerms = document.getElementById('settingPaymentTerms').value;
+  appState.invoiceFooterNote = document.getElementById('settingInvoiceFooterNote').value;
+  appState.mailerHeadline = document.getElementById('settingMailerHeadline').value;
+  appState.mailerCallout = document.getElementById('settingMailerCallout').value;
+  appState.services = document.getElementById('settingServices').value.split(',').map(s => s.trim()).filter(Boolean);
+
+  saveState(); 
+  updateBrandingUI(); 
+  populateTaxonomyDropdowns();
+  populateServicesDropdown(); 
+  renderCustomerList();
+  populateRolodexDropdown();
+  alert('All Settings Preferences Saved Successfully!');
+}
+
+function openCustomerMap(address) {
+  const hq = appState.hqAddress || '';
+  const provider = appState.mapProvider || 'google';
+  
+  if (!address) return alert("Address is missing.");
+
+  let mapUrl = '';
+  if (provider === 'apple') {
+    mapUrl = `https://maps.apple.com/?saddr=${encodeURIComponent(hq)}&daddr=${encodeURIComponent(address)}`;
+  } else if (provider === 'bing') {
+    mapUrl = `https://www.bing.com/maps?rtp=adr.${encodeURIComponent(hq)}~adr.${encodeURIComponent(address)}`;
+  } else {
+    mapUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(hq)}&destination=${encodeURIComponent(address)}`;
+  }
+
+  window.open(mapUrl, '_blank');
+}
+
+function routeSelectedCustomers() {
+  const hq = appState.hqAddress || '';
+  const checkboxes = document.querySelectorAll('.cust-route-checkbox:checked');
+  const selectedIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+
+  if (selectedIds.length === 0) return alert("Select at least one record to build a route.");
+
+  const addresses = selectedIds
+    .map(id => appState.customers.find(c => c.id === id))
+    .filter(c => c && getFullCustomerAddress(c))
+    .map(c => encodeURIComponent(getFullCustomerAddress(c)));
+
+  if (addresses.length === 0) return alert("No valid addresses found for selected items.");
+
+  let multiRouteUrl = `https://www.google.com/maps/dir/${encodeURIComponent(hq)}/` + addresses.join('/');
+  window.open(multiRouteUrl, '_blank');
+}
+
+function deleteSelectedCustomers() {
+  const checkboxes = document.querySelectorAll('.cust-route-checkbox:checked');
+  const selectedIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+
+  if (selectedIds.length === 0) return alert("Check at least one customer box in the directory to delete.");
+
+  if (confirm(`Are you sure you want to delete ${selectedIds.length} selected record(s) and their invoices?`)) {
+    appState.customers = appState.customers.filter(c => !selectedIds.includes(c.id));
+    appState.invoices = appState.invoices.filter(i => !selectedIds.includes(i.customerId));
+    appState.selectedCustomerId = appState.customers.length > 0 ? appState.customers[0].id : null;
+
+    saveState(); 
+    renderCustomerList(); 
+    populateRolodexDropdown(); 
+    renderYouViewOverview();
+    if (appState.selectedCustomerId) loadCustomerIntoForm(appState.selectedCustomerId);
+  }
+}
+
+async function testServerSync() {
+  const url = document.getElementById('settingSyncUrl').value;
+  if (!url) return alert("Please enter a Remote Server Endpoint URL first!");
+
+  try {
+    const res = await fetch(url, { method: 'GET' });
+    if (res.ok) {
+      alert(`⚡ Remote Server Sync Connected Successfully!\nServer Status: ${res.status}`);
+    } else {
+      alert(`⚠️ Server reached, but returned status code: ${res.status}`);
+    }
+  } catch (err) {
+    alert(`❌ Server Connection Failed:\n${err.message}`);
+  }
+}
+
+function resetToFactoryDefault() {
+  if (confirm("Are you sure you want to reset all CRM database records and settings to factory defaults?")) {
+    localStorage.removeItem('multiTradeCrmData');
+    appState = {
+      presetTheme: 'lawn', theme: 'light', sidebarCollapsed: false, autoloadDefault: true,
+      defaultTaxRate: 7.00, taxId: "", paymentTerms: "Payment due upon receipt.", paymentUrl: "",
+      invoiceFooterNote: "Thank you for your business!", hqAddress: "", mapProvider: "google", mapsApiKey: "", showMapButtons: false,
+      directoryMode: "customer", enforceEncryption: true,
+      syncMode: 'local', syncUrl: '', mailerHeadline: presetThemes.lawn.headline, mailerCallout: presetThemes.lawn.callout,
+      company: { name: presetThemes.lawn.name, details: "(555) 234-5678 | info@mybusiness.com", logo: "" },
+      services: [...presetThemes.lawn.services],
+      statuses: ["Active Contract", "One-Time Job", "Lead/Quote", "Inactive"],
+      routeGroups: ["North Loop", "South Suburbs", "Commercial Core", "Weekend Callouts"],
+      employees: [
+        { id: 201, name: "Marcus Vance", role: "Crew Lead", started: "2024-03-15", status: "Active" },
+        { id: 202, name: "Sarah Lin", role: "Irrigation Specialist", started: "2025-05-01", status: "Active" }
+      ],
+      customers: [], invoices: [], selectedCustomerId: null
+    };
+    loadSampleData(); 
+    saveState(); 
+    initApp();
+    alert("SimpleCRM has been completely reset to factory default!");
+  }
+}
+
+function updateBrandingUI() {
+  document.getElementById('displayCompanyName').textContent = appState.company.name || 'Business Manager';
+  document.getElementById('displayCompanyDetails').textContent = appState.company.details || '';
+  const logoImg = document.getElementById('displayCompanyLogo');
+  if (appState.company.logo) { logoImg.src = appState.company.logo; logoImg.style.display = 'block'; }
+  else { logoImg.style.display = 'none'; }
+}
+
+function populateServicesDropdown() {
+  const sel = document.getElementById('primaryService');
+  const invSel = document.getElementById('invServicePreset');
+  if (!sel || !invSel) return;
+
+  const val = sel.value;
+  sel.innerHTML = '';
+  invSel.innerHTML = '<option value="">-- Custom Line Item --</option>';
+
+  (appState.services || []).forEach(s => {
+    const opt = document.createElement('option'); opt.value = s; opt.textContent = s; sel.appendChild(opt);
+    const invOpt = document.createElement('option'); invOpt.value = s; invOpt.textContent = s; invSel.appendChild(invOpt);
+  });
+  
+  if (val) sel.value = val;
+}
+
+function onInvoiceServicePresetChange(e) {
+  const selectedService = e.target.value;
+  if (!selectedService) return;
+  document.getElementById('invDescription').value = `${selectedService}`;
+  
+  const custId = parseInt(document.getElementById('invCustomerId').value);
+  const cust = appState.customers.find(c => c.id === custId);
+  if (cust && cust.price && parseFloat(cust.price) > 0) {
+    document.getElementById('invAmount').value = cust.price;
+  }
+  updateInvoiceTaxCalculations();
+}
+
+function renderCustomerList() {
+  const list = document.getElementById('customerList');
+  const search = document.getElementById('search').value.toLowerCase();
+  const statusFilter = document.getElementById('statusFilter').value;
+  const routeGroupFilter = document.getElementById('routeGroupFilter').value;
+  list.innerHTML = '';
+
+  const isProjectMode = appState.directoryMode === 'project';
+
+  const filtered = appState.customers.filter(c => {
+    const fullAddr = getFullCustomerAddress(c).toLowerCase();
+    const projName = (c.projectName || '').toLowerCase();
+    const matchesSearch = c.name.toLowerCase().includes(search) || fullAddr.includes(search) || projName.includes(search);
+    const matchesStatus = statusFilter === 'ALL' || c.status === statusFilter;
+    const matchesRoute = routeGroupFilter === 'ALL' || c.routeGroup === routeGroupFilter;
+    return matchesSearch && matchesStatus && matchesRoute;
+  });
+
+  const showMapBtns = appState.showMapButtons === true;
+  const singleMapBtn = document.getElementById('btnOpenSingleMap');
+  if (singleMapBtn) singleMapBtn.style.display = showMapBtns ? 'inline-flex' : 'none';
+
+  filtered.forEach(c => {
+    const li = document.createElement('li');
+    li.className = `customer-item ${c.id === appState.selectedCustomerId ? 'active' : ''}`;
+    
+    li.addEventListener('click', (e) => { 
+      if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'BUTTON') {
+        showTab('customer'); 
+        loadCustomerIntoForm(c.id); 
+      }
+    });
+
+    const primaryHeading = isProjectMode && c.projectName ? c.projectName : (c.name || 'Unnamed Record');
+    const subHeading = isProjectMode && c.projectName ? `Client: ${c.name}` : getFullCustomerAddress(c);
+    const mapBtnHtml = showMapBtns ? `<button type="button" class="btn btn-sm btn-secondary btn-quick-map" title="Map Single Stop">📍 Map</button>` : '';
+
+    li.innerHTML = `
+      <h4>
+        <span><input type="checkbox" class="cust-route-checkbox" value="${c.id}"> ${primaryHeading}</span>
+        ${mapBtnHtml}
+      </h4>
+      <p>${subHeading || 'No Address'}</p>
+      <p><strong>${c.service}</strong> ${c.routeGroup ? `• <em>${c.routeGroup}</em>` : ''} - $${c.price || '0.00'}</p>
+    `;
+
+    const chk = li.querySelector('.cust-route-checkbox');
+    if (chk) chk.addEventListener('click', (e) => e.stopPropagation());
+
+    if (showMapBtns) {
+      const qMap = li.querySelector('.btn-quick-map');
+      if (qMap) {
+        qMap.addEventListener('click', (evt) => {
+          evt.stopPropagation();
+          openCustomerMap(getFullCustomerAddress(c));
+        });
+      }
+    }
+
+    list.appendChild(li);
+  });
+}
+
+function loadCustomerIntoForm(id) {
+  const c = appState.customers.find(item => item.id === id);
+  if (!c) return;
+  appState.selectedCustomerId = id;
+
+  document.getElementById('custName').value = c.name || '';
+  document.getElementById('custProjectName').value = c.projectName || '';
+  document.getElementById('custOwnerTitle').value = c.ownerTitle || '';
+  document.getElementById('custPhone').value = c.phone || '';
+  document.getElementById('custEmail').value = c.email || '';
+  document.getElementById('custAddress').value = c.address || '';
+  document.getElementById('custCity').value = c.city || '';
+  document.getElementById('custState').value = c.state || '';
+  document.getElementById('custZip').value = c.zip || '';
+
+  const empSel = document.getElementById('custAssignedEmployee');
+  if (empSel) {
+    const assigned = Array.isArray(c.assignedTechs) ? c.assignedTechs : [];
+    Array.from(empSel.options).forEach(opt => {
+      opt.selected = assigned.includes(parseInt(opt.value));
+    });
+  }
+
+  document.getElementById('propertySize').value = c.size || '';
+  document.getElementById('gateCode').value = c.gate || '';
+  document.getElementById('grassType').value = c.grass || '';
+  document.getElementById('equipmentNeeds').value = c.equipment || '';
+  
+  const costEl = document.getElementById('internalCost');
+  if (costEl) costEl.value = c.internalCost || '';
+
+  const rDateEl = document.getElementById('custReminderDate');
+  if (rDateEl) rDateEl.value = c.reminderDate || '';
+
+  const rNoteEl = document.getElementById('custReminderNote');
+  if (rNoteEl) rNoteEl.value = c.reminderNote || '';
+
+  document.getElementById('primaryService').value = c.service || (appState.services[0] || '');
+  document.getElementById('serviceFrequency').value = c.frequency || 'Weekly';
+  document.getElementById('customerStatus').value = c.status || (appState.statuses[0] || 'Active Contract');
+  document.getElementById('custRouteGroup').value = c.routeGroup || '';
+  document.getElementById('servicePrice').value = c.price || '';
+  document.getElementById('paymentMethod').value = c.payment || 'Credit Card';
+
+  renderCustomerInvoiceTable(c.id);
+  renderCustomerList();
+  populateRolodexDropdown();
+}
+
+function createNewCustomer() {
+  const newCust = {
+    id: Date.now(), name: "New Client", projectName: "", ownerTitle: "", phone: "", email: "", 
+    address: "", city: "", state: "", zip: "", size: "", gate: "", grass: "",
+    equipment: "", internalCost: "", reminderDate: "", reminderNote: "",
+    service: appState.services[0] || "Service Call", frequency: "Weekly", 
+    status: appState.statuses[0] || "Lead/Quote", routeGroup: "", assignedTechs: [],
+    price: "0.00", payment: "Credit Card"
+  };
+  appState.customers.push(newCust); 
+  saveState(); 
+  loadCustomerIntoForm(newCust.id);
+}
+
+function saveCurrentCustomer() {
+  if (!appState.selectedCustomerId) return;
+  const c = appState.customers.find(item => item.id === appState.selectedCustomerId);
+  if (!c) return;
+
+  c.name = document.getElementById('custName').value;
+  c.projectName = document.getElementById('custProjectName').value;
+  c.ownerTitle = document.getElementById('custOwnerTitle').value;
+  c.phone = document.getElementById('custPhone').value;
+  c.email = document.getElementById('custEmail').value;
+  c.address = document.getElementById('custAddress').value;
+  c.city = document.getElementById('custCity').value;
+  c.state = document.getElementById('custState').value;
+  c.zip = document.getElementById('custZip').value;
+
+  const empSel = document.getElementById('custAssignedEmployee');
+  if (empSel) {
+    c.assignedTechs = Array.from(empSel.selectedOptions).map(opt => parseInt(opt.value));
+  }
+
+  c.size = document.getElementById('propertySize').value;
+  c.gate = document.getElementById('gateCode').value;
+  c.grass = document.getElementById('grassType').value;
+  c.equipment = document.getElementById('equipmentNeeds').value;
+  
+  const costEl = document.getElementById('internalCost');
+  if (costEl) c.internalCost = costEl.value;
+
+  const rDateEl = document.getElementById('custReminderDate');
+  if (rDateEl) c.reminderDate = rDateEl.value;
+
+  const rNoteEl = document.getElementById('custReminderNote');
+  if (rNoteEl) c.reminderNote = rNoteEl.value;
+
+  c.service = document.getElementById('primaryService').value;
+  c.frequency = document.getElementById('serviceFrequency').value;
+  c.status = document.getElementById('customerStatus').value;
+  c.routeGroup = document.getElementById('custRouteGroup').value;
+  c.price = document.getElementById('servicePrice').value;
+  c.payment = document.getElementById('paymentMethod').value;
+
+  saveState(); 
+  renderCustomerList(); 
+  populateRolodexDropdown(); 
+  renderYouViewOverview(); 
+  alert('Record saved successfully!');
+}
+
+function deleteCurrentCustomer() {
+  if (!appState.selectedCustomerId) return;
+  if (confirm("Delete this record and all associated invoices?")) {
+    appState.customers = appState.customers.filter(c => c.id !== appState.selectedCustomerId);
+    appState.invoices = appState.invoices.filter(i => i.customerId !== appState.selectedCustomerId);
+    appState.selectedCustomerId = appState.customers.length > 0 ? appState.customers[0].id : null;
+    saveState(); 
+    renderCustomerList(); 
+    populateRolodexDropdown(); 
+    renderYouViewOverview();
+    if (appState.selectedCustomerId) loadCustomerIntoForm(appState.selectedCustomerId);
+  }
+}
+
+function calculateInvoiceTotals(inv) {
+  const subtotal = parseFloat(inv.amount) || 0;
+  const applyTax = inv.applyTax !== false;
+  const rate = applyTax ? (parseFloat(inv.taxRate) || 0) : 0;
+  const taxAmount = subtotal * (rate / 100);
+  const grandTotal = subtotal + taxAmount;
+  return { subtotal, rate, taxAmount, grandTotal };
+}
+
+function renderCustomerInvoiceTable(customerId) {
+  const tbody = document.getElementById('customerInvoiceTableBody');
+  const custInvoices = appState.invoices.filter(i => i.customerId === customerId);
+
+  if (custInvoices.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">No invoices for this account yet.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = '';
+  custInvoices.forEach(inv => {
+    const { grandTotal } = calculateInvoiceTotals(inv);
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><strong>${inv.number}</strong></td>
+      <td>${inv.date}</td>
+      <td>${inv.description}</td>
+      <td>$${grandTotal.toFixed(2)}</td>
+      <td><span class="badge badge-${inv.status.toLowerCase()}">${inv.status}</span></td>
+      <td>
+        <button type="button" class="btn btn-sm btn-secondary btn-print-inv">🖨️ Print</button>
+        <button type="button" class="btn btn-sm btn-secondary btn-dup-inv">👯 Duplicate</button>
+        <button type="button" class="btn btn-sm btn-edit-inv">✏️ Edit</button>
+        <button type="button" class="btn btn-sm btn-danger btn-del-inv">🗑️ Delete</button>
+      </td>
+    `;
+    tr.querySelector('.btn-print-inv').addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); printSingleInvoice(inv.id); });
+    tr.querySelector('.btn-dup-inv').addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); duplicateInvoice(inv.id); });
+    tr.querySelector('.btn-edit-inv').addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); openInvoiceCreateModal(inv.id); });
+    tr.querySelector('.btn-del-inv').addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); deleteInvoice(inv.id); });
+    tbody.appendChild(tr);
+  });
+}
+
+function copyPaymentLink(invId) {
+  if (!appState.paymentUrl) {
+    alert("Set up your payment link in settings first!");
+    return;
+  }
+  const inv = appState.invoices.find(i => i.id === invId);
+  const { grandTotal } = calculateInvoiceTotals(inv);
+  const payMsg = `Payment for ${inv.number} ($${grandTotal.toFixed(2)}): ${appState.paymentUrl}`;
+  navigator.clipboard.writeText(payMsg);
+  alert(`Payment link copied to clipboard:\n${payMsg}`);
+}
+
+function duplicateInvoice(invId) {
+  const original = appState.invoices.find(i => i.id === invId);
+  if (!original) return;
+
+  const duplicated = {
+    ...original,
+    id: Date.now(),
+    number: `INV-${Math.floor(1000 + Math.random() * 9000)}`,
+    date: new Date().toISOString().slice(0, 10),
+    status: "Unpaid"
+  };
+
+  appState.invoices.push(duplicated);
+  saveState();
+  renderTabInvoiceTable();
+  renderYouViewOverview();
+  if (appState.selectedCustomerId) renderCustomerInvoiceTable(appState.selectedCustomerId);
+  alert(`Invoice duplicated as ${duplicated.number}!`);
+}
+
+function deleteInvoice(invId) {
+  const inv = appState.invoices.find(i => i.id === invId);
+  if (!inv) return;
+  if (confirm(`Are you sure you want to delete invoice ${inv.number}?`)) {
+    appState.invoices = appState.invoices.filter(i => i.id !== invId);
+    saveState();
+    renderTabInvoiceTable();
+    renderYouViewOverview();
+    if (appState.selectedCustomerId) renderCustomerInvoiceTable(appState.selectedCustomerId);
+  }
+}
+
+function populateInvoiceCustomerDropdown() {
+  const sel = document.getElementById('invCustomerId');
+  if (!sel) return;
+
+  if (!appState.customers || appState.customers.length === 0) {
+    sel.innerHTML = `<option value="">No customer records available</option>`;
+    return;
+  }
+
+  sel.innerHTML = appState.customers
+    .map(c => `<option value="${c.id}">${c.name} ${c.projectName ? `[${c.projectName}]` : ''} (${getFullCustomerAddress(c)})</option>`)
+    .join('');
+}
+
+function openInvoiceModalForCurrentCustomer() {
+  if (!appState.selectedCustomerId) return alert("Select or create a record first.");
+  openInvoiceCreateModal(null, appState.selectedCustomerId);
+}
+
+function openInvoiceCreateModal(invId = null, defaultCustId = null) {
+  populateInvoiceCustomerDropdown();
+  populateServicesDropdown();
+  const form = document.getElementById('invoiceForm');
+  form.reset();
+
+  if (invId) {
+    const inv = appState.invoices.find(i => i.id === invId);
+    if (inv) {
+      document.getElementById('invoiceFormTitle').textContent = "Edit Invoice";
+      document.getElementById('invId').value = inv.id;
+      document.getElementById('invCustomerId').value = inv.customerId;
+      document.getElementById('invNum').value = inv.number;
+      document.getElementById('invDate').value = inv.date;
+      document.getElementById('invDescription').value = inv.description;
+      document.getElementById('invAmount').value = inv.amount;
+      document.getElementById('invApplyTax').checked = inv.applyTax !== false;
+      document.getElementById('invTaxRate').value = inv.taxRate !== undefined ? inv.taxRate : (appState.defaultTaxRate || 0);
+      document.getElementById('invStatus').value = inv.status;
+    }
+  } else {
+    document.getElementById('invoiceFormTitle').textContent = "Create New Invoice";
+    document.getElementById('invId').value = "";
+    if (defaultCustId) document.getElementById('invCustomerId').value = defaultCustId;
+    document.getElementById('invNum').value = `INV-${Math.floor(1000 + Math.random() * 9000)}`;
+    document.getElementById('invDate').value = new Date().toISOString().slice(0, 10);
+    document.getElementById('invApplyTax').checked = true;
+    document.getElementById('invTaxRate').value = appState.defaultTaxRate || 0;
+    autoFillInvoiceCustomerData();
+  }
+
+  updateInvoiceTaxCalculations();
+  document.getElementById('createInvoiceModal').style.display = 'flex';
+}
+
+function updateInvoiceTaxCalculations() {
+  const subtotal = parseFloat(document.getElementById('invAmount').value) || 0;
+  const applyTax = document.getElementById('invApplyTax').checked;
+  const rate = applyTax ? (parseFloat(document.getElementById('invTaxRate').value) || 0) : 0;
+  const taxAmount = subtotal * (rate / 100);
+  const grandTotal = subtotal + taxAmount;
+
+  document.getElementById('calcSubtotal').textContent = `$${subtotal.toFixed(2)}`;
+  document.getElementById('calcTaxRateLabel').textContent = rate.toFixed(2);
+  document.getElementById('calcTaxAmount').textContent = `$${taxAmount.toFixed(2)}`;
+  document.getElementById('calcGrandTotal').textContent = `$${grandTotal.toFixed(2)}`;
+}
+
+function autoFillInvoiceCustomerData() {
+  const invId = document.getElementById('invId').value;
+  if (invId) return;
+
+  const custId = parseInt(document.getElementById('invCustomerId').value);
+  const cust = appState.customers.find(c => c.id === custId);
+  if (cust) {
+    document.getElementById('invDescription').value = `${cust.service} (${cust.frequency})`;
+    document.getElementById('invAmount').value = cust.price || "0.00";
+    updateInvoiceTaxCalculations();
+  }
+}
+
+function saveInvoice() {
+  const idVal = document.getElementById('invId').value;
+  const custId = parseInt(document.getElementById('invCustomerId').value);
+  const num = document.getElementById('invNum').value;
+  const date = document.getElementById('invDate').value;
+  const desc = document.getElementById('invDescription').value;
+  const amount = document.getElementById('invAmount').value;
+  const applyTax = document.getElementById('invApplyTax').checked;
+  const taxRate = parseFloat(document.getElementById('invTaxRate').value) || 0;
+  const status = document.getElementById('invStatus').value;
+
+  if (idVal) {
+    const inv = appState.invoices.find(i => i.id === parseInt(idVal));
+    if (inv) {
+      inv.customerId = custId; inv.number = num; inv.date = date; inv.description = desc;
+      inv.amount = amount; inv.applyTax = applyTax; inv.taxRate = taxRate; inv.status = status;
+    }
+  } else {
+    appState.invoices.push({
+      id: Date.now(), customerId: custId, number: num, date: date, description: desc,
+      amount: amount, applyTax: applyTax, taxRate: taxRate, status: status
+    });
+  }
+
+  saveState(); 
+  closeModal('createInvoiceModal'); 
+  renderTabInvoiceTable(); 
+  renderYouViewOverview();
+  if (appState.selectedCustomerId) renderCustomerInvoiceTable(appState.selectedCustomerId);
+}
+
+function closeModal(modalId) { 
+  document.getElementById(modalId).style.display = 'none'; 
+}
+
+function printCustomerDocument(type) {
+  const cust = appState.customers.find(c => c.id === appState.selectedCustomerId);
+  if (!cust) return alert("Select a record first.");
+
+  const p = presetThemes[appState.presetTheme] || presetThemes.lawn;
+  const logoHtml = appState.company.logo ? `<img src="${appState.company.logo}" style="max-height:60px; margin-bottom:10px;">` : '';
+  let content = '';
+
+  if (type === 'card') {
+    content = `
+      <div style="border:2px solid #333; padding:20px; max-width:500px; font-family:sans-serif; margin: 0 auto;">
+        ${logoHtml}
+        <h2 style="margin-top:0;">${appState.company.name || 'Service Provider'}</h2>
+        <p style="font-size:0.85rem; color:#555;">${appState.company.details}</p>
+        <hr>
+        <h3>Record Details</h3>
+        <p><strong>Name / Title:</strong> ${cust.name} ${cust.ownerTitle ? `(${cust.ownerTitle})` : ''}</p>
+        ${cust.projectName ? `<p><strong>Project:</strong> ${cust.projectName}</p>` : ''}
+        <p><strong>Assigned Techs:</strong> ${getAssignedTechNames(cust.assignedTechs)}</p>
+        <p><strong>Route Group:</strong> ${cust.routeGroup || 'Standard'}</p>
+        <p><strong>Address:</strong> ${getFullCustomerAddress(cust)}</p>
+        <p><strong>Phone:</strong> ${cust.phone} | <strong>Email:</strong> ${cust.email}</p>
+        <hr>
+        <p><strong>Service:</strong> ${cust.service} (${cust.frequency})</p>
+        <p><strong>${p.labels.code}:</strong> ${cust.gate || 'N/A'}</p>
+        <p><strong>${p.labels.terrain}:</strong> ${cust.grass || 'N/A'}</p>
+        <p><strong>Equipment Required:</strong> ${cust.equipment || 'Standard'}</p>
+      </div>
+    `;
+  } else if (type === 'mailer') {
+    const greetingName = cust.ownerTitle || cust.name || 'Neighbor';
+    const headline = appState.mailerHeadline || p.headline;
+    const callout = appState.mailerCallout || p.callout;
+
+    content = `
+      <div style="border:2px dashed #333; padding:25px; max-width:550px; font-family:sans-serif; text-align:center; margin: 0 auto;">
+        ${logoHtml}
+        <h2 style="margin-top:0; color:#333;">${appState.company.name}</h2>
+        <h3 style="color:#555; margin-bottom:15px;">${headline}</h3>
+        <p>Greetings <strong>${greetingName}</strong> at <strong>${getFullCustomerAddress(cust)}</strong>!</p>
+        <p>We provide professional ${appState.services.slice(0, 3).join(', ')} services right here in your area.</p>
+        <div style="background:#f4f6f8; border:1px solid #333; padding:12px; margin:15px 0; border-radius:6px;">
+          <h3 style="margin:0; font-size:1.1rem;">${callout}</h3>
+        </div>
+        <p><strong>Contact Info:</strong> ${appState.company.details}</p>
+      </div>
+    `;
+  }
+
+  executeIframePrint(content);
+}
+
+function printSingleInvoice(invoiceId) {
+  const inv = appState.invoices.find(i => i.id === invoiceId);
+  if (!inv) return;
+  const cust = appState.customers.find(c => c.id === inv.customerId) || {};
+  const { subtotal, rate, taxAmount, grandTotal } = calculateInvoiceTotals(inv);
+
+  const logoHtml = appState.company.logo ? `<img src="${appState.company.logo}" style="max-height:70px;">` : '';
+  const taxIdHtml = appState.taxId ? `<br><small style="color:#555;">Tax ID: ${appState.taxId}</small>` : '';
+  const footerNote = appState.invoiceFooterNote || 'Thank you for your business!';
+
+  let payQrHtml = '';
+  if (appState.paymentUrl) {
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(appState.paymentUrl)}`;
+    payQrHtml = `
+      <div style="margin-top:15px; text-align:right;">
+        <p style="margin:0 0 5px 0; font-size:0.8rem; font-weight:bold;">Scan to Pay Online:</p>
+        <img src="${qrUrl}" style="width:90px; height:90px; border:1px solid #ccc; padding:3px;">
+      </div>
+    `;
+  }
+
+  const content = `
+    <div style="max-width:700px; font-family:sans-serif; padding:20px; border:1px solid #ccc; margin: 0 auto;">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+        <div>
+          ${logoHtml}
+          <h2 style="margin:5px 0 0 0;">${appState.company.name}</h2>
+          <p style="font-size:0.85rem; color:#555; margin:0;">${appState.company.details}${taxIdHtml}</p>
+        </div>
+        <div style="text-align:right;">
+          <h1 style="margin:0; color:#333;">INVOICE</h1>
+          <p style="margin:5px 0;"><strong>${inv.number}</strong></p>
+          <p style="margin:0; font-size:0.9rem;">Date: ${inv.date}</p>
+          <p style="margin:5px 0 0 0;"><span style="padding:4px 8px; border:1px solid #333; font-weight:bold;">${inv.status.toUpperCase()}</span></p>
+        </div>
+      </div>
+      <hr style="margin:20px 0;">
+      <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
+        <div>
+          <strong>Billed To:</strong><br>
+          ${cust.name || 'Valued Account'} ${cust.ownerTitle ? `(${cust.ownerTitle})` : ''}<br>
+          ${cust.projectName ? `<strong>Project:</strong> ${cust.projectName}<br>` : ''}
+          ${getFullCustomerAddress(cust)}<br>
+          ${cust.phone || ''}<br>
+          ${cust.email || ''}
+        </div>
+      </div>
+      <table style="width:100%; border-collapse:collapse; margin-bottom:20px;">
+        <thead>
+          <tr style="background:#f4f6f8; border-bottom:2px solid #333;">
+            <th style="padding:10px; text-align:left;">Service Description</th>
+            <th style="padding:10px; text-align:right;">Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="padding:12px; border-bottom:1px solid #ddd;">${inv.description}</td>
+            <td style="padding:12px; text-align:right; border-bottom:1px solid #ddd;">$${subtotal.toFixed(2)}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+        <div style="font-size:0.8rem; color:#555; max-width:320px;">
+          <p style="margin:0;"><strong>Payment Terms:</strong> ${appState.paymentTerms || 'Payment due upon receipt.'}</p>
+          ${appState.paymentUrl ? `<p style="margin:5px 0 0 0;"><strong>Pay Online:</strong> ${appState.paymentUrl}</p>` : ''}
+        </div>
+        <div style="width:240px; text-align:right; font-size:0.9rem;">
+          <div style="display:flex; justify-content:space-between; padding:3px 0;">
+            <span>Subtotal:</span>
+            <span>$${subtotal.toFixed(2)}</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; padding:3px 0;">
+            <span>Sales Tax (${rate.toFixed(2)}%):</span>
+            <span>$${taxAmount.toFixed(2)}</span>
+          </div>
+          <hr style="margin:6px 0; border:none; border-top:2px solid #333;">
+          <div style="display:flex; justify-content:space-between; font-size:1.1rem; font-weight:bold;">
+            <span>Total Due:</span>
+            <span>$${grandTotal.toFixed(2)}</span>
+          </div>
+          ${payQrHtml}
+        </div>
+      </div>
+
+      <p style="text-align:center; margin-top:30px; font-size:0.85rem; color:#777;">${footerNote}</p>
+    </div>
+  `;
+
+  executeIframePrint(content);
+}
+
+function executeIframePrint(htmlContent) {
+  const frame = document.getElementById('printFrame');
+  const frameDoc = frame.contentWindow || frame.contentDocument.document || frame.contentDocument;
+  frameDoc.document.open();
+  frameDoc.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head><title>Print Document</title><style>@page { margin: 10mm; } body { margin: 0; padding: 10px; background: #ffffff; color: #000000; }</style></head>
+    <body>${htmlContent}</body>
+    </html>
+  `);
+  frameDoc.document.close();
+  setTimeout(() => { frame.contentWindow.focus(); frame.contentWindow.print(); }, 300);
+}
+
+// 🔐 Enforced AES-256 Export Handler
+async function exportJSON() {
+  const isEnforced = appState.enforceEncryption !== false;
+  let password = "";
+
+  if (isEnforced) {
+    password = prompt("🔐 Enter a master passphrase to encrypt your backup (Required by System Security Policy):");
+    if (!password) {
+      return alert("⚠️ Export cancelled: Encryption is enforced by security settings. Passphrase is required.");
+    }
+  } else {
+    password = prompt("🔐 Enter master passphrase to encrypt (or leave blank for unencrypted JSON):") || "";
+  }
+
+  const dataString = JSON.stringify(appState, null, 2);
+  const dateStr = new Date().toISOString().slice(0, 10);
+
+  if (password.trim().length > 0) {
+    try {
+      const encryptedPayload = await CryptoEngine.encryptData(dataString, password.trim());
+      const blob = new Blob([encryptedPayload], { type: "application/json" });
+      const anchor = document.createElement("a");
+      anchor.href = URL.createObjectURL(blob);
+      anchor.download = `crm_encrypted_backup_${dateStr}.enc`;
+      document.body.appendChild(anchor); 
+      anchor.click(); 
+      anchor.remove();
+      alert("🔒 Encrypted backup successfully created (.enc extension)!");
+    } catch (err) {
+      alert("❌ Encryption Failed: " + err.message);
+    }
+  } else {
+    const blob = new Blob([dataString], { type: "application/json" });
+    const anchor = document.createElement("a");
+    anchor.href = URL.createObjectURL(blob);
+    anchor.download = `crm_database_${dateStr}.json`;
+    document.body.appendChild(anchor); 
+    anchor.click(); 
+    anchor.remove();
+    alert("📄 Standard unencrypted JSON backup created.");
+  }
+}
+
+// 🔓 Smart Import Handler (.json, .enc, .vault)
+function importJSON(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = async function(evt) {
+    const rawContent = evt.target.result;
+
+    try {
+      let parsedData = null;
+      let testJson = null;
+
+      try { testJson = JSON.parse(rawContent); } catch (err) {}
+
+      if (testJson && testJson.ciphertext && testJson.salt && testJson.iv) {
+        const password = prompt("🔑 This file is password-protected. Enter master passphrase to decrypt:");
+        if (!password) {
+          alert("Import cancelled: Passphrase is required.");
+          e.target.value = '';
+          return;
+        }
+
+        try {
+          const decryptedText = await CryptoEngine.decryptData(testJson, password.trim());
+          parsedData = JSON.parse(decryptedText);
+        } catch (decryptErr) {
+          alert("❌ Decryption Failed: Invalid passphrase or corrupted backup file.");
+          e.target.value = '';
+          return;
+        }
+      } else if (testJson && testJson.customers) {
+        parsedData = testJson;
+      } else {
+        throw new Error("Unrecognized database file format.");
+      }
+
+      if (parsedData && Array.isArray(parsedData.customers)) {
+        appState = { ...appState, ...parsedData };
+        saveState();
+        initApp();
+        alert("🎉 Database backup successfully loaded!");
+      } else {
+        alert("⚠️ Import Error: Backup file is missing required records.");
+      }
+
+    } catch (err) {
+      alert("❌ Import Failed: " + err.message);
+    }
+
+    e.target.value = '';
+  };
+
+  reader.readAsText(file);
+}
+
+// CSV Export with Dedicated Multi-Tech Assigned Column
+function exportCSV() {
+  if (appState.customers.length === 0) return alert("No customer records to export.");
+  
+  const headers = [
+    "Name", "Project Title", "Owner Title", "Phone", "Email", 
+    "Street Address", "City", "State", "Zip", 
+    "Assigned Tech", "Route Group", "Service", "Price", "Status"
+  ];
+
+  const rows = appState.customers.map(c => [
+    `"${c.name}"`, 
+    `"${c.projectName || ''}"`, 
+    `"${c.ownerTitle || ''}"`, 
+    `"${c.phone}"`, 
+    `"${c.email}"`, 
+    `"${c.address}"`, 
+    `"${c.city || ''}"`, 
+    `"${c.state || ''}"`, 
+    `"${c.zip || ''}"`,
+    `"${getAssignedTechNames(c.assignedTechs)}"`,
+    `"${c.routeGroup || ''}"`,
+    `"${c.service}"`, 
+    `"${c.price}"`, 
+    `"${c.status}"`
+  ]);
+
+  const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+  const anchor = document.createElement("a");
+  anchor.setAttribute("href", encodeURI(csvContent));
+  anchor.setAttribute("download", `customer_export_${new Date().toISOString().slice(0, 10)}.csv`);
+  document.body.appendChild(anchor); 
+  anchor.click(); 
+  anchor.remove();
+}
