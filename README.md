@@ -20,6 +20,35 @@
 
 ---
 
+# SimpleCRM & Billing (v1.9.0)
+
+A zero-bloat, privacy-first, local-first CRM, scheduling, and invoicing management side-panel extension for field service professionals and trade businesses.
+
+## What's New in v1.9.0
+
+### 🔐 Enforced Client-Side AES-256 Encryption
+- Native Web Crypto API integration (`window.crypto.subtle`) using AES-256-GCM authenticated encryption and PBKDF2 key derivation (100,000 iterations, SHA-256).
+- Database backups are protected by a master passphrase and exported as `.enc` / `.vault` files by default.
+- Added a toggle in Settings to switch between enforced encryption and optional plain JSON exports.
+
+### 🗺️ Route Grouping & Geographic Dispatch
+- Create custom **Route Groups** (e.g., North Loop, Commercial Core, Suburbs) directly in Settings.
+- Secondary directory filter to view accounts by Route Group before building multi-stop daily loops via Google Maps, Apple Maps, or Bing Maps.
+
+### 👷 Team & Crew Roster (Multi-Tech Assignment)
+- In-app Team Roster management in Settings (Name, Role, Start Date, Active/Inactive status).
+- Multi-select technician assignments on customer cards.
+- Integrated multi-tech assignment tracking into full CSV exports under a dedicated `"Assigned Tech"` column.
+
+### 📁 Project / Jobsite Directory Mode
+- Added a workflow toggle in Settings to switch between **Customer Directory** and **Project / Jobsite Directory**.
+- Displays dedicated Project/Site titles as primary card headers in the sidebar.
+
+### 🎛️ Workspace Cleanups & Manifest V3 CSP Compliance
+- **Tab-Aware Command Center:** The Business Command Overview automatically collapses when viewing Customer, Invoice, or Settings tabs to provide a distraction-free workspace.
+- **Collapsible Maintenance Suite:** The Database Library & Reset tools are cleanly hidden behind an expandable drawer by default.
+- **100% CSP Clean:** Replaced inline DOM handler attributes with native event listeners to prevent Chrome Web Store console warnings.
+
 ## 🚀 Getting Started (Developer / Unpacked Installation)
 
 1. **Clone or Download the Repository:**
