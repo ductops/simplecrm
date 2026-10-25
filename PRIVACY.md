@@ -1,39 +1,43 @@
-# Privacy Policy for SimpleCRM
+# Privacy Policy for SimpleCRM & Billing Pro
 
-**Effective Date:** August 11, 2026
+**Last Updated:** October 2026
 
-SimpleCRM ("the extension") is designed with a strict privacy-first architecture. This Privacy Policy outlines how your data is handled when you use our Chrome Extension.
+SimpleCRM & Billing Pro ("the Extension") is committed to delivering a privacy-first, local-first utility for field service professionals and trade businesses. This Privacy Policy outlines our strict policy regarding user data collection, storage, and processing.
 
-## 1. Local Data Storage Only
+---
 
-SimpleCRM operates entirely offline. All data you enter into the extension—including customer records, invoices, business settings, notes, and uploaded logos—is stored strictly on your local device using standard browser storage APIs (`localStorage` and IndexedDB).
+### 1. Core Principle: Zero Remote Data Collection
+SimpleCRM & Billing Pro does **not** collect, track, transmit, monetize, or sell personal information, business data, customer records, or browsing activity. 
 
-* We do not maintain, rent, or use external cloud servers to host your data.
-* We do not collect, transmit, or monitor your CRM data over the internet.
-* We do not utilize usage tracking, telemetry, or analytics software.
+There are no remote analytical trackers, external database telemetry, user fingerprinting services, or third-party tracking cookies embedded within the Extension.
 
-## 2. Information Sharing and Disclosure
+---
 
-Because your data never leaves your device, **we do not share, sell, rent, or trade your data** with any third parties, advertisers, or affiliates under any circumstances.
+### 2. Permissions Declared & Usage
 
-## 3. Chrome Permissions Justification
+The Extension requests only the minimum permissions necessary to function:
 
-To function as a local database, SimpleCRM requires the following permission:
+* **`storage`**: Used exclusively to save and retrieve your database records (customer contact info, invoices, crew rosters, taxonomies, and layout settings) inside your browser's private local sandboxed environment via `chrome.storage.local` / `localStorage`. This data never leaves your device unless you initiate a local file export.
+* **`sidePanel`**: Used solely to open and operate the Extension's interface directly alongside your active browser tabs. The Extension cannot read, alter, or access the contents or URLs of the websites you navigate to.
 
-* **`storage`**: Required to save, modify, and retrieve your business data locally across browser sessions. Without this, your records would disappear every time you closed the extension.
+---
 
-## 4. User Control and Data Deletion
+### 3. Local Encryption & Data Security
+* **Client-Side Processing:** All cryptographic operations (AES-256-GCM authenticated encryption and PBKDF2 key derivation) run directly within your browser session utilizing the standard, native Web Crypto API (`window.crypto.subtle`).
+* **Passphrases:** Master passphrases used to encrypt your database backups are processed entirely in local memory and are never stored, logged, or transmitted anywhere. If a passphrase is lost, it cannot be recovered by the developers.
 
-You retain 100% ownership and control over your data. You can completely delete all stored information at any time by:
+---
 
-* Using the manual deletion tools within the extension's interface.
-* Clearing your browser's local storage and cache.
-* Uninstalling the extension from Google Chrome (which automatically and permanently wipes the associated local database).
+### 4. External Links & Services
+* **Mapping Providers:** Opening a direction route or map view executes a standard navigation event in a new browser tab using standard public URL formats (Google Maps, Apple Maps, or Bing Maps). The Extension does not send background tracking calls to these providers.
+* **Payment Gateways:** Invoices utilize user-specified payment links (e.g., Stripe, PayPal, Venmo). Payment transactions take place entirely on those third-party platforms under their respective privacy policies.
 
-## 5. Changes to This Privacy Policy
+---
 
-We may update this policy if new features are added (for example, if an optional, user-enabled cloud backup feature is introduced in a future version). Any changes will be clearly communicated in the extension update notes, and the core offline functionality will always remain an option.
+### 5. Third-Party Disclosures
+Because the Extension does not collect any user data, no information is ever sold, leased, or disclosed to third parties, advertisers, or data brokers.
 
-## 6. Contact Information
+---
 
-If you have any questions or concerns regarding this privacy policy, please contact the developer at: **chuck-it@ductops.com**
+### 6. Updates & Inquiries
+If our privacy practices change, this policy will be revised accordingly. For any inquiries regarding this policy or the Extension's security architecture, please contact us via the Chrome Web Store support portal or our official repository.
