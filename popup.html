@@ -567,24 +567,54 @@
           </div>
         </div>
 
-        <!-- REMOTE SERVER SYNC ENGINE -->
-        <div class="form-section">
-          <h3>⚡ Remote Server Sync Engine</h3>
-          <div class="grid-2">
-            <div class="form-group">
-              <label>Database Storage Mode</label>
-              <select id="settingSyncMode" class="form-control">
-                <option value="local">🔒 Pure Offline (Local Storage)</option>
-                <option value="remote">🌐 Remote Server API Sync</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>Server Endpoint URL</label>
-              <input type="text" id="settingSyncUrl" class="form-control" placeholder="https://my-server.com/api/crm-sync">
-            </div>
-          </div>
-          <button type="button" class="btn btn-sm btn-secondary" id="btnTestServerSync">⚡ Test Server Connection</button>
-        </div>
+        <!-- PRO LICENSE KEY & GOOGLE DRIVE CLOUD SYNC -->
+<div class="form-section" style="background:var(--accent); border:2px solid var(--primary); padding:14px; border-radius:8px;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+    <h3 style="margin:0; color:var(--primary); font-size:1.05rem;">
+      👑 SimpleCRM Pro: Google Drive Cloud Sync
+    </h3>
+    <span id="badgeProStatus" class="badge" style="background:#e0e0e0; color:#333; font-size:0.75rem;">FREE TIER</span>
+  </div>
+
+  <p style="margin:0 0 10px 0; font-size:0.78rem; color:var(--text-muted);">
+    Securely synchronize your CRM accounts, jobs, and invoices across devices using your private Google Drive <code>appDataFolder</code>. No external database servers or third-party data tracking.
+  </p>
+
+  <!-- LICENSE ACTIVATION ROW -->
+  <div class="grid-2" style="align-items:end; gap:8px; margin-bottom:12px;">
+    <div class="form-group" style="margin-bottom:0;">
+      <label>Pro License Key</label>
+      <input type="text" id="settingProLicenseKey" class="form-control" placeholder="SCPRO-XXXX-XXXX-XXXX" style="margin-bottom:0;">
+    </div>
+    <div style="display:flex; gap:6px;">
+      <button type="button" class="btn" id="btnActivateProLicense" style="flex:1;">Activate Pro</button>
+      <a href="https://yourbrand.lemonsqueezy.com/checkout/buy/pro" target="_blank" class="btn btn-secondary" style="text-decoration:none; display:inline-flex; align-items:center;" id="btnGetProLink">Get Pro</a>
+    </div>
+  </div>
+
+  <!-- CLOUD SYNC CONTROLS (LOCKED / UNLOCKED) -->
+  <div id="gdriveControlsWrapper" style="opacity: 0.55; pointer-events: none; border-top:1px dashed var(--border); padding-top:10px;">
+    <div class="grid-2" style="align-items:center; margin-bottom:10px;">
+      <div class="form-group" style="margin-bottom:0;">
+        <label>Automatic Background Cloud Sync</label>
+        <select id="settingAutoSyncDrive" class="form-control" style="margin-bottom:0;">
+          <option value="false">Manual Only (Push / Pull via Buttons)</option>
+          <option value="true">Automatic (Sync in Background on Change)</option>
+        </select>
+      </div>
+      <div style="font-size:0.75rem; color:var(--text-muted); padding-top:16px;">
+        Last Cloud Backup: <strong id="labelLastCloudSyncTime">Never</strong>
+      </div>
+    </div>
+
+    <!-- MANUAL PUSH / PULL BUTTONS -->
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <button type="button" class="btn btn-sm" id="btnManualPushDrive">☁️ Push State to Google Drive</button>
+      <button type="button" class="btn btn-sm btn-secondary" id="btnManualPullDrive">📥 Pull State from Google Drive</button>
+      <button type="button" class="btn btn-sm btn-secondary" id="btnDisconnectGoogle">🔌 Disconnect Google Account</button>
+    </div>
+  </div>
+</div>
 
         <div class="form-section">
           <h3>Business Branding & Details</h3>
