@@ -27,5 +27,8 @@
   },
   "side_panel": {
     "default_path": "popup.html"
-  }
+  },
+  "host_permissions": [
+    "https://subsc-paym-gw.ductops.com/*"
+  ]
 }
